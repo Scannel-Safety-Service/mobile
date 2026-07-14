@@ -20,12 +20,14 @@ import { DocumentSection } from '@/types/document';
 import { useFileUpload } from '@/hooks/use-file-upload';
 import { formatBytes } from '@/lib/file-utils';
 import { useDocumentsStore } from '@/store/documents-store';
+import { useIndividuals } from '@/hooks/use-individuals';
 
 export default function DocumentUploadScreen() {
-  const { section, categoryId, categoryName } = useLocalSearchParams<{
+  const { section, categoryId, categoryName, individualName } = useLocalSearchParams<{
     section: string;
     categoryId?: string;
     categoryName?: string;
+    individualName?: string;
   }>();
 
   const router = useRouter();
@@ -35,6 +37,16 @@ export default function DocumentUploadScreen() {
 
   const sectionEnum = section as DocumentSection;
   const folderDef = PREDEFINED_FOLDERS.find((f) => f.key === section);
+  const isTrainingQualifications = sectionEnum === DocumentSection.TRAINING_QUALIFICATIONS;
+
+  // Fetch individuals if in TRAINING_QUALIFICATIONS section and no pre-defined individualName
+  const {
+    individuals,
+    isLoading: isLoadingIndividuals,
+  } = useIndividuals(isTrainingQualifications && !individualName);
+
+  const [selectedIndividual, setSelectedIndividual] = useState('');
+  const [showDropdown, setShowDropdown] = useState(false);
 
   const {
     selectedFile,
@@ -97,8 +109,21 @@ export default function DocumentUploadScreen() {
       return;
     }
 
+    const activeIndividual = individualName || selectedIndividual;
+    if (isTrainingQualifications && !activeIndividual) {
+      setLocalError('Please select an individual.');
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      return;
+    }
+
     setLocalError(null);
-    const uploaded = await uploadFile(sectionEnum, documentTitle.trim(), categoryId);
+
+    // Format title by appending " - IndividualName" for training qualifications
+    const finalTitle = isTrainingQualifications
+      ? `${documentTitle.trim()} - ${activeIndividual}`
+      : documentTitle.trim();
+
+    const uploaded = await uploadFile(sectionEnum, finalTitle, categoryId);
     if (!uploaded) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
@@ -122,7 +147,7 @@ export default function DocumentUploadScreen() {
         <View style={styles.headerInfo}>
           <Text style={[styles.destinationLabel, { color: colors.muted }]}>UPLOADING TO</Text>
           <Text style={[styles.destinationTitle, { color: colors.text }]}>
-            {folderDef?.label} {categoryName ? `› ${categoryName}` : ''}
+            {folderDef?.label} {categoryName ? `› ${categoryName}` : individualName ? `› ${individualName}` : ''}
           </Text>
         </View>
 
@@ -199,6 +224,57 @@ export default function DocumentUploadScreen() {
                     <Ionicons name="close-circle" size={22} color={colors.muted} />
                   </Pressable>
                 </View>
+              </View>
+            )}
+
+            {/* Individual select dropdown (for Training Qualifications when individualName is not pre-selected) */}
+            {selectedFile && isTrainingQualifications && !individualName && (
+              <View style={styles.inputGroup}>
+                <Text style={[styles.inputLabel, { color: colors.muted }]}>SELECT INDIVIDUAL</Text>
+                <Pressable
+                  onPress={() => setShowDropdown(!showDropdown)}
+                  style={[
+                    styles.inputWrapper,
+                    {
+                      backgroundColor: isDark ? '#0b1624' : '#ffffff',
+                      borderColor: colors.cardBorder,
+                    },
+                  ]}
+                >
+                  <Ionicons name="person-outline" size={20} color={colors.icon} style={styles.inputIcon} />
+                  <Text style={[styles.inputText, { color: selectedIndividual ? colors.text : colors.muted, flex: 1 }]}>
+                    {selectedIndividual || 'Select an individual...'}
+                  </Text>
+                  <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={18} color={colors.muted} />
+                </Pressable>
+
+                {showDropdown && (
+                  <View style={[styles.dropdownContainer, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+                    {individuals.length === 0 ? (
+                      <Text style={[styles.dropdownItemText, { color: colors.muted, padding: 12 }]}>
+                        No individuals found
+                      </Text>
+                    ) : (
+                      individuals.map((ind) => (
+                        <Pressable
+                          key={ind.id}
+                          onPress={() => {
+                            setSelectedIndividual(ind.name);
+                            setShowDropdown(false);
+                            if (localError) setLocalError(null);
+                          }}
+                          style={({ pressed }) => [
+                            styles.dropdownItem,
+                            { borderBottomColor: colors.cardBorder },
+                            pressed && styles.pressed,
+                          ]}
+                        >
+                          <Text style={[styles.dropdownItemText, { color: colors.text }]}>{ind.name}</Text>
+                        </Pressable>
+                      ))
+                    )}
+                  </View>
+                )}
               </View>
             )}
 
@@ -451,5 +527,26 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 10,
+  },
+  inputText: {
+    fontSize: 14,
+  },
+  dropdownContainer: {
+    borderWidth: 1,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    marginTop: 4,
+    overflow: 'hidden',
+  },
+  dropdownItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+  },
+  dropdownItemText: {
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  pressed: {
+    opacity: 0.85,
   },
 });

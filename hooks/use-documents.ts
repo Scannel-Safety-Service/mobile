@@ -8,12 +8,15 @@ export function useDocuments(section: DocumentSection, categoryId?: string) {
   const sectionDocs = documents[key] || [];
 
   const refetch = useCallback(async () => {
+    if (!section) return;
     await fetchDocuments(section, categoryId);
   }, [section, categoryId, fetchDocuments]);
 
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    if (section) {
+      refetch();
+    }
+  }, [refetch, section]);
 
   return {
     documents: sectionDocs,

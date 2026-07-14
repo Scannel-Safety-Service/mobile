@@ -11,10 +11,11 @@ import { DocumentRow } from '@/components/documents/document-row';
 import { EmptyState } from '@/components/documents/empty-state';
 
 export default function SubfolderScreen() {
-  const { categoryId, categoryName, section } = useLocalSearchParams<{
+  const { categoryId, categoryName, section, isIndividual } = useLocalSearchParams<{
     categoryId: string;
     categoryName: string;
     section: string;
+    isIndividual?: string;
   }>();
   
   const router = useRouter();
@@ -22,9 +23,15 @@ export default function SubfolderScreen() {
   const colors = Colors[colorScheme ?? 'light'];
 
   const sectionEnum = section as DocumentSection;
+  const isInd = isIndividual === 'true';
 
-  // Fetch documents for the specific categoryId under the given section
-  const { documents, isLoading, error, refetch } = useDocuments(sectionEnum, categoryId);
+  // Fetch documents for the specific categoryId (or section documents if it's an individual folder)
+  const { documents, isLoading, error, refetch } = useDocuments(sectionEnum, isInd ? undefined : categoryId);
+
+  // Client-side filter to only show documents ending with " - IndividualName"
+  const filteredDocuments = isInd
+    ? documents.filter((doc) => doc.title && doc.title.endsWith(` - ${categoryName}`))
+    : documents;
 
   // Auto-refresh when entering
   useEffect(() => {
@@ -42,7 +49,12 @@ export default function SubfolderScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     router.push({
       pathname: '/(app)/documents/upload',
-      params: { section: sectionEnum, categoryId },
+      params: { 
+        section: sectionEnum, 
+        categoryId: isInd ? undefined : categoryId,
+        categoryName: isInd ? undefined : categoryName,
+        individualName: isInd ? categoryName : undefined,
+      },
     });
   };
 
@@ -80,7 +92,7 @@ export default function SubfolderScreen() {
         </View>
       ) : (
         <FlatList
-          data={documents}
+          data={filteredDocuments}
           renderItem={renderDocumentItem}
           keyExtractor={(item) => item.id}
           contentContainerStyle={styles.listContent}
@@ -88,7 +100,7 @@ export default function SubfolderScreen() {
           ListEmptyComponent={
             <EmptyState
               title="Folder is Empty"
-              description="There are no documents uploaded inside this category subfolder yet."
+              description={isInd ? `There are no documents uploaded for ${categoryName} yet.` : "There are no documents uploaded inside this category subfolder yet."}
             />
           }
         />

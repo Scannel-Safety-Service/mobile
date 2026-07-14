@@ -7,12 +7,15 @@ export function useCategories(section: DocumentSection) {
   const sectionCategories = categories[section] || [];
 
   const refetch = useCallback(async () => {
+    if (!section) return;
     await fetchCategories(section);
   }, [section, fetchCategories]);
 
   useEffect(() => {
-    refetch();
-  }, [refetch]);
+    if (section) {
+      refetch();
+    }
+  }, [refetch, section]);
 
   return {
     categories: sectionCategories,

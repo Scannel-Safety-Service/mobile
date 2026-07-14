@@ -10,6 +10,7 @@ import { DocumentSection } from '@/types/document';
 import { Category } from '@/types/category';
 import { useDocuments } from '@/hooks/use-documents';
 import { useCategories } from '@/hooks/use-categories';
+import { useIndividuals, Individual } from '@/hooks/use-individuals';
 import { DocumentRow } from '@/components/documents/document-row';
 import { EmptyState } from '@/components/documents/empty-state';
 
@@ -31,7 +32,15 @@ export default function SectionScreen() {
     refetch: refetchCategories,
   } = useCategories(folderDef?.hasSubfolders ? sectionEnum : ('' as any));
 
-  // 2. Fetch documents (if folder does NOT have subfolders and is not Training Qualifications)
+  // 2. Fetch individuals (if folder has individuals)
+  const {
+    individuals,
+    isLoading: isLoadingIndividuals,
+    error: individualsError,
+    refetch: refetchIndividuals,
+  } = useIndividuals(!!folderDef?.hasIndividuals);
+
+  // 3. Fetch documents (if folder does NOT have subfolders and is not Training Qualifications)
   const isDirectDocumentSection = folderDef && !folderDef.hasSubfolders && !folderDef.hasIndividuals;
   const {
     documents,
@@ -44,6 +53,8 @@ export default function SectionScreen() {
   useEffect(() => {
     if (folderDef?.hasSubfolders) {
       refetchCategories();
+    } else if (folderDef?.hasIndividuals) {
+      refetchIndividuals();
     } else if (isDirectDocumentSection) {
       refetchDocuments();
     }
@@ -56,11 +67,16 @@ export default function SectionScreen() {
     });
   }, [router]);
 
-  const handleSubfolderPress = useCallback((categoryId: string, categoryName: string) => {
+  const handleSubfolderPress = useCallback((categoryId: string, categoryName: string, isIndividual = false) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     router.push({
       pathname: '/(app)/documents/subfolder/[categoryId]',
-      params: { categoryId, categoryName, section: sectionEnum },
+      params: { 
+        categoryId, 
+        categoryName, 
+        section: sectionEnum,
+        isIndividual: isIndividual ? 'true' : 'false',
+      },
     });
   }, [router, sectionEnum]);
 
@@ -70,12 +86,6 @@ export default function SectionScreen() {
       pathname: '/(app)/documents/upload',
       params: { section: sectionEnum },
     });
-  };
-
-  const handleIndividualFoldersPress = () => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-    // In Phase 5, this will navigate to /(app)/individuals stack. For now, redirect to placeholder/prompt
-    router.push('/(app)/documents/upload'); // Temporary, fallback to upload or we'll stub it
   };
 
   // Render Document Item
@@ -92,10 +102,11 @@ export default function SectionScreen() {
   }, [handleDocumentPress]);
 
   // Render Category Subfolder Item
-  const renderCategoryItem = useCallback(({ item }: { item: Category }) => {
+  const renderCategoryItem = useCallback(({ item }: { item: Category | Individual }) => {
+    const isInd = 'userId' in item;
     return (
       <Pressable
-        onPress={() => handleSubfolderPress(item.id, item.name)}
+        onPress={() => handleSubfolderPress(item.id, item.name, isInd)}
         style={({ pressed }) => [
           styles.subfolderRow,
           {
@@ -126,8 +137,27 @@ export default function SectionScreen() {
     );
   }
 
-  const isLoading = folderDef.hasSubfolders ? isLoadingCategories : isLoadingDocuments;
-  const error = folderDef.hasSubfolders ? categoriesError : documentsError;
+  const isLoading = folderDef.hasSubfolders 
+    ? isLoadingCategories 
+    : folderDef.hasIndividuals 
+      ? isLoadingIndividuals 
+      : isLoadingDocuments;
+
+  const error = folderDef.hasSubfolders 
+    ? categoriesError 
+    : folderDef.hasIndividuals 
+      ? individualsError 
+      : documentsError;
+
+  const refetchData = () => {
+    if (folderDef.hasSubfolders) {
+      refetchCategories();
+    } else if (folderDef.hasIndividuals) {
+      refetchIndividuals();
+    } else {
+      refetchDocuments();
+    }
+  };
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -142,7 +172,7 @@ export default function SectionScreen() {
           <Ionicons name="alert-circle-outline" size={48} color="#f43f5e" />
           <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
           <Pressable
-            onPress={folderDef.hasSubfolders ? refetchCategories : refetchDocuments}
+            onPress={refetchData}
             style={[styles.retryButton, { backgroundColor: colors.primary }]}
           >
             <Text style={styles.retryText}>Retry</Text>
@@ -164,30 +194,20 @@ export default function SectionScreen() {
           }
         />
       ) : folderDef.hasIndividuals ? (
-        /* Training Qualifications individual view placeholder */
-        <View style={styles.centerContainer}>
-          <View style={[styles.qualificationIconWrapper, { backgroundColor: isDark ? '#14273b' : '#f0f6fc' }]}>
-            <Ionicons name="people-outline" size={48} color={colors.primary} />
-          </View>
-          <Text style={[styles.sectionHeading, { color: colors.text }]}>Individual Folders</Text>
-          <Text style={[styles.sectionDesc, { color: colors.muted }]}>
-            Create and browse personal folders for certificates & qualifications.
-          </Text>
-          
-          <Pressable
-            onPress={handleIndividualFoldersPress}
-            style={({ pressed }) => [
-              styles.primaryButton,
-              {
-                backgroundColor: colors.primary,
-                opacity: pressed ? 0.9 : 1,
-              },
-            ]}
-          >
-            <Ionicons name="add-circle-outline" size={20} color="#ffffff" />
-            <Text style={styles.primaryButtonText}>Manage Folders</Text>
-          </Pressable>
-        </View>
+        /* Grid of individuals / subfolders */
+        <FlatList
+          data={individuals}
+          renderItem={renderCategoryItem}
+          keyExtractor={(item) => item.id}
+          contentContainerStyle={styles.listContent}
+          showsVerticalScrollIndicator={false}
+          ListEmptyComponent={
+            <EmptyState
+              title="No Folders Available"
+              description={`There are no individual folders created for ${folderDef.label} yet.`}
+            />
+          }
+        />
       ) : (
         /* Direct list of documents */
         <FlatList

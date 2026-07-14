@@ -32,12 +32,22 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
         throw new Error(result.message || 'Failed to fetch categories');
       }
 
+      let catsList: Category[] = [];
+      if (result.data) {
+        if (Array.isArray(result.data)) {
+          catsList = result.data;
+        } else if (result.data.items && Array.isArray(result.data.items)) {
+          catsList = result.data.items;
+        }
+      }
+
       set((state) => ({
         categories: {
           ...state.categories,
-          [section]: result.data || [],
+          [section]: catsList,
         },
         isLoading: false,
+        error: null,
       }));
     } catch (err: any) {
       console.error(`Error fetching categories for ${section}:`, err);
@@ -77,6 +87,7 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
           [key]: docsList,
         },
         isLoading: false,
+        error: null,
       }));
     } catch (err: any) {
       console.error(`Error fetching documents for ${section} (category: ${categoryId}):`, err);

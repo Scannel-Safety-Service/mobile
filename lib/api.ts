@@ -75,7 +75,13 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
   // Set default client identifier header
   headers.set('x-client-type', 'mobile');
   
-  if (!headers.has('Content-Type') && !(options.body instanceof FormData)) {
+  const isMultipart = options.body && (
+    options.body instanceof FormData || 
+    (typeof options.body === 'object' && 'append' in (options.body as any)) ||
+    (options.body.constructor && options.body.constructor.name === 'FormData')
+  );
+  
+  if (!headers.has('Content-Type') && !isMultipart) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -87,9 +93,14 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
     }
   }
 
+  const plainHeaders: Record<string, string> = {};
+  headers.forEach((value, key) => {
+    plainHeaders[key] = value;
+  });
+
   const fetchOptions: RequestInit = {
     ...options,
-    headers,
+    headers: plainHeaders,
   };
 
   const response = await fetch(url, fetchOptions);
@@ -102,7 +113,11 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
       })
         .then((newAccessToken) => {
           headers.set('Authorization', `Bearer ${newAccessToken}`);
-          return fetch(url, fetchOptions);
+          const retryHeaders: Record<string, string> = {};
+          headers.forEach((value, key) => {
+            retryHeaders[key] = value;
+          });
+          return fetch(url, { ...fetchOptions, headers: retryHeaders });
         })
         .catch((error) => {
           throw error;
@@ -117,7 +132,11 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
       
       // Retry original request with the new access token
       headers.set('Authorization', `Bearer ${newAccessToken}`);
-      return await fetch(url, fetchOptions);
+      const retryHeaders: Record<string, string> = {};
+      headers.forEach((value, key) => {
+        retryHeaders[key] = value;
+      });
+      return await fetch(url, { ...fetchOptions, headers: retryHeaders });
     } catch (refreshError) {
       processQueue(refreshError, null);
       
