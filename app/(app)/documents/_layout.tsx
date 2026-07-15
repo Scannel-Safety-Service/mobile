@@ -22,7 +22,6 @@ export default function DocumentsLayout() {
     >
       <Stack.Screen name="[section]" />
       <Stack.Screen name="subfolder/[categoryId]" />
-      <Stack.Screen name="viewer" options={{ title: 'View Document' }} />
       <Stack.Screen name="upload" options={{ title: 'Upload Document', presentation: 'modal' }} />
     </Stack>
   );

@@ -88,13 +88,21 @@ export const FolderCard = memo(function FolderCard({
     };
   });
 
-  const cardBg = isDark ? 'rgba(8, 23, 41, 0.75)' : '#ffffff';
-  const cardBorder = isDark ? 'rgba(15, 39, 64, 0.6)' : 'rgba(226, 239, 250, 0.8)';
+  const cardBg = isDark ? 'rgba(8, 23, 41, 0.65)' : 'rgba(255, 255, 255, 0.55)';
+  const cardBorder = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.65)';
   const iconBoxBg = isDark ? accent.darkBg : accent.lightBg;
 
   return (
     <View style={styles.container}>
-      <Animated.View style={[styles.animatedWrapper, animatedCardStyle]}>
+      <Animated.View
+        style={[
+          styles.animatedWrapper,
+          {
+            boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.4)' : '0 12px 36px rgba(21, 91, 157, 0.06)',
+          },
+          animatedCardStyle,
+        ]}
+      >
         <Pressable
           onPressIn={handlePressIn}
           onPressOut={handlePressOut}
@@ -134,7 +142,6 @@ const styles = StyleSheet.create({
     flex: 1,
     borderRadius: 24,
     overflow: 'hidden',
-    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
   },
   card: {
     flex: 1,

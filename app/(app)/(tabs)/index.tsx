@@ -1,70 +1,155 @@
-import React from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView, Platform } from 'react-native';
+import React, { useState, useEffect, useCallback } from 'react';
+import { StyleSheet, View, Text, Pressable, ScrollView, Platform, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
+import {
+  ShieldCheck,
+  FileText,
+  AlertTriangle,
+  Award,
+  AlertCircle,
+  CheckCircle2,
+} from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
 import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
 import { HelloWave } from '@/components/hello-wave';
 import { LinearGradient } from 'expo-linear-gradient';
+import { apiRequest } from '@/lib/api';
+import { BackgroundLogo } from '@/components/background-logo';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme];
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const { user } = useAuthStore();
 
   const isDark = colorScheme === 'dark';
+
+  const [isLoading, setIsLoading] = useState(true);
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const [totalDocs, setTotalDocs] = useState(0);
+  const [safetyStatementsCount, setSafetyStatementsCount] = useState(0);
+  const [riskAssessmentsCount, setRiskAssessmentsCount] = useState(0);
+  const [certificatesCount, setCertificatesCount] = useState(0);
+  const [hasPendingReview, setHasPendingReview] = useState(false);
 
   const triggerFeedback = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const fetchData = useCallback(async (showRefreshing = false) => {
+    if (showRefreshing) {
+      setIsRefreshing(true);
+    } else {
+      setIsLoading(true);
+    }
+
+    try {
+      const response = await apiRequest('/documents?limit=100');
+      const result = await response.json();
+
+      if (response.ok && result.data) {
+        let docsList: any[] = [];
+        if (Array.isArray(result.data)) {
+          docsList = result.data;
+        } else if (result.data.items && Array.isArray(result.data.items)) {
+          docsList = result.data.items;
+        }
+
+        // Compute document stats
+        setTotalDocs(docsList.length);
+        
+        const safetyCount = docsList.filter((d: any) => d.section === 'SAFETY_STATEMENT').length;
+        setSafetyStatementsCount(safetyCount);
+
+        const riskCount = docsList.filter((d: any) => d.section === 'RISK_ASSESSMENT').length;
+        setRiskAssessmentsCount(riskCount);
+
+        const certsCount = docsList.filter((d: any) => d.section === 'TRAINING_QUALIFICATIONS').length;
+        setCertificatesCount(certsCount);
+
+        // Compliance status: check if any document is not reviewed
+        const hasPending = docsList.some((d: any) => !d.isReviewed);
+        setHasPendingReview(hasPending);
+      }
+    } catch (error) {
+      console.error('Error fetching home screen overview data:', error);
+    } finally {
+      setIsLoading(false);
+      setIsRefreshing(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    fetchData();
+  }, [fetchData]);
+
+  const onRefresh = useCallback(() => {
+    fetchData(true);
+  }, [fetchData]);
+
+  if (isLoading && !isRefreshing) {
+    return (
+      <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
+        <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  const cardBg = isDark ? 'rgba(8, 23, 41, 0.65)' : 'rgba(255, 255, 255, 0.55)';
+  const cardBorder = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.65)';
+
   const statCards = [
     {
-      label: 'Assigned Documents',
-      value: '3',
-      icon: 'document-text-outline' as const,
-      iconColor: '#10b981',
-      bgLight: '#ecfdf5',
-      bgDark: '#142a1e',
-      accentColor: '#10b981',
+      label: 'Total Documents',
+      value: totalDocs.toString(),
+      icon: FileText,
+      iconColor: '#3b82f6',
+      bgLight: 'rgba(59, 130, 246, 0.08)',
+      bgDark: 'rgba(59, 130, 246, 0.12)',
     },
     {
-      label: 'Active Reminders',
-      value: '1',
-      icon: 'notifications-outline' as const,
-      iconColor: '#d97706',
-      bgLight: '#fffbeb',
-      bgDark: '#35210e',
-      accentColor: '#f59e0b',
+      label: 'Safety Statements',
+      value: safetyStatementsCount.toString(),
+      icon: ShieldCheck,
+      iconColor: '#10b981',
+      bgLight: 'rgba(16, 185, 129, 0.08)',
+      bgDark: 'rgba(16, 185, 129, 0.12)',
+    },
+    {
+      label: 'Risk Assessments',
+      value: riskAssessmentsCount.toString(),
+      icon: AlertTriangle,
+      iconColor: '#f59e0b',
+      bgLight: 'rgba(245, 158, 11, 0.08)',
+      bgDark: 'rgba(245, 158, 11, 0.12)',
     },
     {
       label: 'Certificates',
-      value: 'Active',
-      icon: 'ribbon-outline' as const,
-      iconColor: '#3b82f6',
-      bgLight: '#eff6ff',
-      bgDark: '#102738',
-      accentColor: '#3b82f6',
-    },
-    {
-      label: 'Assigned Location',
-      value: 'Site-01',
-      icon: 'construct-outline' as const,
-      iconColor: '#8b5cf6',
-      bgLight: '#faf5ff',
-      bgDark: '#23122c',
-      accentColor: '#8b5cf6',
+      value: certificatesCount.toString(),
+      icon: Award,
+      iconColor: '#f43f5e',
+      bgLight: 'rgba(244, 63, 94, 0.08)',
+      bgDark: 'rgba(244, 63, 94, 0.12)',
     },
   ];
 
+  const complianceStatus = hasPendingReview ? 'Pending Review' : 'Safety Compliant';
+  const complianceColor = hasPendingReview ? '#f59e0b' : '#10b981';
+  const complianceBg = hasPendingReview ? 'rgba(245, 158, 11, 0.15)' : 'rgba(16, 185, 129, 0.15)';
+
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <ScrollView
-        style={styles.container}
-        contentContainerStyle={styles.contentContainer}
-        showsVerticalScrollIndicator={false}
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <BackgroundLogo />
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView
+          style={styles.container}
+          contentContainerStyle={styles.contentContainer}
+          showsVerticalScrollIndicator={false}
+        refreshControl={
+          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+        }
       >
         {/* Welcome Header with Gradient */}
         <View style={styles.welcomeCard}>
@@ -89,14 +174,14 @@ export default function HomeScreen() {
                 <HelloWave />
               </View>
               <Text style={styles.companyText}>
-                Scannel Safety Tracker Scoped
+                {user?.companyName || 'Scannel Safety'}
               </Text>
             </View>
 
             {/* Safety Status inline */}
-            <View style={styles.statusPill}>
-              <View style={styles.statusDot} />
-              <Text style={styles.statusPillText}>Safety Compliant</Text>
+            <View style={[styles.statusPill, { backgroundColor: complianceBg }]}>
+              <View style={[styles.statusDot, { backgroundColor: complianceColor }]} />
+              <Text style={[styles.statusPillText, { color: complianceColor }]}>{complianceStatus}</Text>
             </View>
           </LinearGradient>
         </View>
@@ -106,16 +191,25 @@ export default function HomeScreen() {
           style={[
             styles.statusCard,
             {
-              backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
-              borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
+              boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.4)' : '0 12px 36px rgba(21, 91, 157, 0.06)',
             },
           ]}
         >
-          <View style={[styles.statusAccent, { backgroundColor: '#10b981' }]} />
           <View style={styles.statusCardContent}>
-            <Text style={[styles.cardTitle, { color: colors.text }]}>Safety Compliance Status</Text>
+            <View style={styles.statusHeaderRow}>
+              {hasPendingReview ? (
+                <AlertCircle size={24} color="#f59e0b" style={styles.statusIcon} />
+              ) : (
+                <CheckCircle2 size={24} color="#10b981" style={styles.statusIcon} />
+              )}
+              <Text style={[styles.cardTitle, { color: colors.text }]}>Safety Compliance Status</Text>
+            </View>
             <Text style={[styles.statusDescription, { color: colors.muted }]}>
-              Your account is fully active and synchronized with {"your company's"} safety database.
+              {hasPendingReview
+                ? 'You have documents pending review. Please review and sign them in the documents section to ensure compliance.'
+                : 'Your account is fully active, and all assigned documents are reviewed and up to date.'}
             </Text>
           </View>
         </View>
@@ -124,30 +218,34 @@ export default function HomeScreen() {
         <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Overview</Text>
 
         <View style={styles.grid}>
-          {statCards.map((card, index) => (
-            <Pressable
-              key={index}
-              onPress={triggerFeedback}
-              style={({ pressed }) => [
-                styles.gridItem,
-                {
-                  backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
-                  borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
-                  transform: [{ scale: pressed ? 0.97 : 1 }],
-                },
-              ]}
-            >
-              {/* Top accent line */}
-              <View style={[styles.gridAccent, { backgroundColor: card.accentColor }]} />
-              <View style={[styles.iconCircle, { backgroundColor: isDark ? card.bgDark : card.bgLight }]}>
-                <Ionicons name={card.icon} size={24} color={card.iconColor} />
-              </View>
-              <View style={styles.gridItemContent}>
-                <Text style={[styles.statNumber, { color: colors.text }]}>{card.value}</Text>
-                <Text style={[styles.statLabel, { color: colors.muted }]}>{card.label}</Text>
-              </View>
-            </Pressable>
-          ))}
+          {statCards.map((card, index) => {
+            const CardIcon = card.icon;
+            const iconCircleBg = isDark ? card.bgDark : card.bgLight;
+
+            return (
+              <Pressable
+                key={index}
+                onPress={triggerFeedback}
+                style={({ pressed }) => [
+                  styles.gridItem,
+                  {
+                    backgroundColor: cardBg,
+                    borderColor: cardBorder,
+                    boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.4)' : '0 12px 36px rgba(21, 91, 157, 0.06)',
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                  },
+                ]}
+              >
+                <View style={[styles.iconCircle, { backgroundColor: iconCircleBg }]}>
+                  <CardIcon size={24} color={card.iconColor} strokeWidth={2} />
+                </View>
+                <View style={styles.gridItemContent}>
+                  <Text style={[styles.statNumber, { color: colors.text }]}>{card.value}</Text>
+                  <Text style={[styles.statLabel, { color: colors.muted }]}>{card.label}</Text>
+                </View>
+              </Pressable>
+            );
+          })}
         </View>
 
         {/* Safety Notice Footer Banner */}
@@ -155,20 +253,21 @@ export default function HomeScreen() {
           style={[
             styles.noticeBanner,
             {
-              backgroundColor: isDark ? 'rgba(16,29,45,0.7)' : 'rgba(230,240,250,0.8)',
-              borderColor: isDark ? 'rgba(15,39,64,0.4)' : 'rgba(226,239,250,0.7)',
+              backgroundColor: isDark ? 'rgba(16, 29, 45, 0.7)' : 'rgba(230, 240, 250, 0.8)',
+              borderColor: isDark ? 'rgba(15, 39, 64, 0.4)' : 'rgba(226, 239, 250, 0.7)',
             },
           ]}
         >
-          <View style={[styles.noticeIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+          <View style={[styles.noticeIconCircle, { backgroundColor: isDark ? 'rgba(86, 185, 255, 0.1)' : 'rgba(21, 91, 157, 0.06)' }]}>
             <Ionicons name="information-circle" size={20} color={colors.primary} />
           </View>
           <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
-            Contact your company administrator if you require updates to your assigned projects or credentials.
+            Contact your company administrator if you require updates to your assigned credentials or documents.
           </Text>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -240,36 +339,35 @@ const styles = StyleSheet.create({
     paddingHorizontal: 14,
     paddingVertical: 8,
     borderRadius: 20,
-    backgroundColor: 'rgba(16, 185, 129, 0.15)',
   },
   statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
-    backgroundColor: '#34d399',
   },
   statusPillText: {
     ...Typography.footnote,
     fontWeight: '600',
-    color: '#34d399',
   },
 
   /* ── Status Card ── */
   statusCard: {
-    flexDirection: 'row',
-    borderWidth: 1,
-    borderRadius: 20,
+    borderWidth: 1.2,
+    borderRadius: 24,
     borderCurve: 'continuous',
     overflow: 'hidden',
-    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
-  },
-  statusAccent: {
-    width: 4,
   },
   statusCardContent: {
-    flex: 1,
-    padding: 18,
-    gap: 8,
+    padding: 20,
+    gap: 10,
+  },
+  statusHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  statusIcon: {
+    marginTop: -2,
   },
   cardTitle: {
     ...Typography.headline,
@@ -292,28 +390,17 @@ const styles = StyleSheet.create({
   },
   gridItem: {
     width: '47%',
-    borderWidth: 1,
-    borderRadius: 20,
+    borderWidth: 1.2,
+    borderRadius: 24,
     borderCurve: 'continuous',
     padding: 18,
     gap: 14,
     overflow: 'hidden',
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
-  },
-  gridAccent: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 3,
-    borderTopLeftRadius: 20,
-    borderTopRightRadius: 20,
   },
   iconCircle: {
     width: 48,
     height: 48,
-    borderRadius: 14,
-    borderCurve: 'continuous',
+    borderRadius: 24,
     justifyContent: 'center',
     alignItems: 'center',
   },

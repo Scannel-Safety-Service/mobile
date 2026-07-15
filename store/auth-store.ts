@@ -85,10 +85,12 @@ export const useAuthStore = create<AuthState>((set) => {
               const refreshedUser: UserProfile = {
                 id: newDecoded.sub,
                 email: user.email,
-                firstName: user.firstName,
-                lastName: user.lastName,
+                firstName: newDecoded.firstName || user.firstName,
+                lastName: newDecoded.lastName || user.lastName,
                 role: newDecoded.role,
                 companyId: newDecoded.companyId,
+                companyName: newDecoded.companyName || user.companyName || null,
+                userCode: newDecoded.userCode || user.userCode || null,
               };
 
               await setTokens(tokens.accessToken, tokens.refreshToken);
@@ -165,6 +167,8 @@ export const useAuthStore = create<AuthState>((set) => {
           lastName: decoded.lastName || decoded.name?.split(' ')?.slice(1).join(' ') || '',
           role: decoded.role,
           companyId: decoded.companyId,
+          companyName: decoded.companyName || null,
+          userCode: decoded.userCode || null,
         };
 
         await setTokens(tokens.accessToken, tokens.refreshToken);

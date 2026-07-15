@@ -2,17 +2,16 @@ import React, { useCallback } from 'react';
 import { StyleSheet, View, Text, FlatList } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { Image } from 'expo-image';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors, Typography } from '@/constants/theme';
 import { PREDEFINED_FOLDERS, FolderDefinition } from '@/constants/folders';
 import { FolderCard } from '@/components/documents/folder-card';
-import { LinearGradient } from 'expo-linear-gradient';
+import { BackgroundLogo } from '@/components/background-logo';
 
 export default function DocumentsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
 
   // Navigate to specific folder view
@@ -36,34 +35,29 @@ export default function DocumentsScreen() {
   }, [handleFolderPress]);
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Absolute Low Opacity Background Logo Icon */}
-      <View style={styles.backgroundWrapper} pointerEvents="none">
-        <Image
-          source={require('@/assets/images/logo-icon.png')}
-          style={styles.backgroundImage}
-          contentFit="contain"
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <BackgroundLogo />
+
+      <SafeAreaView style={styles.safeArea}>
+        {/* Header */}
+        <View style={styles.header}>
+          <Text style={[styles.title, { color: colors.text }]}>Safety Documents</Text>
+          <Text style={[styles.subtitle, { color: colors.muted }]}>
+            Browse categories and assigned certificates
+          </Text>
+        </View>
+
+        <FlatList
+          data={PREDEFINED_FOLDERS}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.key}
+          numColumns={2}
+          contentContainerStyle={styles.gridContent}
+          columnWrapperStyle={styles.gridRow}
+          showsVerticalScrollIndicator={false}
         />
-      </View>
-
-      {/* Header */}
-      <View style={styles.header}>
-        <Text style={[styles.title, { color: colors.text }]}>Safety Documents</Text>
-        <Text style={[styles.subtitle, { color: colors.muted }]}>
-          Browse categories and assigned certificates
-        </Text>
-      </View>
-
-      <FlatList
-        data={PREDEFINED_FOLDERS}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.key}
-        numColumns={2}
-        contentContainerStyle={styles.gridContent}
-        columnWrapperStyle={styles.gridRow}
-        showsVerticalScrollIndicator={false}
-      />
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -72,16 +66,8 @@ const styles = StyleSheet.create({
     flex: 1,
     position: 'relative',
   },
-  backgroundWrapper: {
-    ...StyleSheet.absoluteFillObject,
-    justifyContent: 'center',
-    alignItems: 'center',
-    zIndex: -1,
-  },
-  backgroundImage: {
-    width: '85%',
-    height: '85%',
-    opacity: 0.05,
+  safeArea: {
+    flex: 1,
   },
   header: {
     paddingHorizontal: 24,

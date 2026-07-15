@@ -16,6 +16,8 @@ export interface UserProfile {
   lastName: string;
   role: string;
   companyId: string | null;
+  companyName: string | null;
+  userCode: string | null;
 }
 
 // In-browser local storage fallback for web development

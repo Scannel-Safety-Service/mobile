@@ -1,5 +1,5 @@
-import React, { useEffect, useCallback } from 'react';
-import { StyleSheet, View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import React, { useEffect, useCallback, useState } from 'react';
+import { StyleSheet, View, Text, FlatList, Pressable, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
@@ -13,13 +13,58 @@ import { useCategories } from '@/hooks/use-categories';
 import { useIndividuals, Individual } from '@/hooks/use-individuals';
 import { DocumentRow } from '@/components/documents/document-row';
 import { EmptyState } from '@/components/documents/empty-state';
+import { useViewDocument } from '@/hooks/use-view-document';
+import { useAuthStore } from '@/store/auth-store';
+import { apiRequest } from '@/lib/api';
+import { BackgroundLogo } from '@/components/background-logo';
 
 export default function SectionScreen() {
   const { section } = useLocalSearchParams<{ section: string }>();
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
+
+  const { user } = useAuthStore();
+  const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
+  const [newIndividualName, setNewIndividualName] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
+
+  const handleCreateIndividual = async () => {
+    if (!newIndividualName.trim()) {
+      Alert.alert('Error', 'Please enter a name for the individual.');
+      return;
+    }
+
+    setIsSubmitting(true);
+    try {
+      const response = await apiRequest('/individuals', {
+        method: 'POST',
+        body: JSON.stringify({
+          userId: user?.id,
+          companyId: user?.companyId,
+          name: newIndividualName.trim(),
+        }),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.message || 'Failed to create individual.');
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setIsCreateModalVisible(false);
+      setNewIndividualName('');
+      refetchIndividuals();
+    } catch (err: any) {
+      console.error('Error creating individual:', err);
+      Alert.alert('Error', err.message || 'Something went wrong while creating the individual.');
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
 
   const sectionEnum = section as DocumentSection;
   const folderDef = PREDEFINED_FOLDERS.find((f) => f.key === section);
@@ -60,12 +105,11 @@ export default function SectionScreen() {
     }
   }, [section, folderDef]);
 
-  const handleDocumentPress = useCallback((id: string, fileName: string) => {
-    router.push({
-      pathname: '/(app)/documents/viewer',
-      params: { id, fileName },
-    });
-  }, [router]);
+  const handleDocumentPress = useCallback((id: string) => {
+    const doc = documents?.find((d) => d.id === id);
+    if (!doc) return;
+    viewDocument(doc.fileUrl, doc.originalFileName);
+  }, [documents, viewDocument]);
 
   const handleSubfolderPress = useCallback((categoryId: string, categoryName: string, isIndividual = false) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
@@ -161,6 +205,7 @@ export default function SectionScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <BackgroundLogo />
       <Stack.Screen options={{ title: folderDef.label }} />
 
       {isLoading ? (
@@ -239,6 +284,116 @@ export default function SectionScreen() {
         >
           <Ionicons name="cloud-upload" size={24} color="#ffffff" />
         </Pressable>
+      )}
+
+      {/* Floating Add Individual Trigger (Visible for training qualifications where individuals are listed) */}
+      {folderDef.hasIndividuals && (
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+            setIsCreateModalVisible(true);
+          }}
+          style={({ pressed }) => [
+            styles.fab,
+            {
+              backgroundColor: colors.primary,
+              opacity: pressed ? 0.9 : 1,
+            },
+          ]}
+        >
+          <Ionicons name="person-add" size={24} color="#ffffff" />
+        </Pressable>
+      )}
+
+      {/* Create Individual Modal */}
+      <Modal
+        visible={isCreateModalVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => {
+          setIsCreateModalVisible(false);
+          setNewIndividualName('');
+        }}
+      >
+        <View style={styles.modalOverlay}>
+          <View style={[styles.modalCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={styles.modalHeader}>
+              <View style={[styles.modalIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+                <Ionicons name="person-add-outline" size={20} color={colors.primary} />
+              </View>
+              <Text style={[styles.modalTitle, { color: colors.text }]}>Add New Individual</Text>
+            </View>
+
+            <Text style={[styles.modalDescription, { color: colors.muted }]}>
+              Create a profile folder for an individual to store their training and qualifications.
+            </Text>
+
+            <View style={styles.modalInputGroup}>
+              <Text style={[styles.modalInputLabel, { color: colors.muted }]}>NAME</Text>
+              <View style={[styles.modalInputWrapper, { backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)', borderColor: colors.cardBorder }]}>
+                <TextInput
+                  style={[styles.modalInput, { color: colors.text }]}
+                  placeholder="Enter individual's full name"
+                  placeholderTextColor={colors.muted}
+                  value={newIndividualName}
+                  onChangeText={setNewIndividualName}
+                  autoCapitalize="words"
+                  autoFocus
+                  editable={!isSubmitting}
+                />
+              </View>
+            </View>
+
+            <View style={styles.modalActionRow}>
+              <Pressable
+                onPress={() => {
+                  setIsCreateModalVisible(false);
+                  setNewIndividualName('');
+                }}
+                disabled={isSubmitting}
+                style={({ pressed }) => [
+                  styles.modalCancelButton,
+                  { borderColor: colors.cardBorder },
+                  pressed && styles.pressed,
+                ]}
+              >
+                <Text style={[styles.modalCancelText, { color: colors.text }]}>Cancel</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={handleCreateIndividual}
+                disabled={isSubmitting}
+                style={({ pressed }) => [
+                  styles.modalSubmitButton,
+                  { backgroundColor: colors.primary },
+                  pressed && styles.pressed,
+                ]}
+              >
+                {isSubmitting ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <Text style={styles.modalSubmitText}>Create</Text>
+                )}
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {isDownloading && (
+        <View style={styles.downloadOverlay}>
+          <View style={[styles.downloadCard, { backgroundColor: isDark ? 'rgba(8,23,41,0.95)' : 'rgba(255,255,255,0.95)', borderColor: colors.cardBorder, borderWidth: 1 }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.downloadText, { color: colors.text }]}>
+              Opening Document...
+            </Text>
+            {downloadProgress > 0 && (
+              <Text style={[styles.downloadProgressText, { color: colors.muted }]}>
+                {Math.round(downloadProgress * 100)}%
+              </Text>
+            )}
+          </View>
+        </View>
       )}
     </View>
   );
@@ -358,5 +513,116 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 6,
     boxShadow: '0 6px 20px rgba(21, 91, 157, 0.3)',
+  },
+  downloadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  downloadCard: {
+    padding: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    gap: 12,
+    elevation: 5,
+    minWidth: 200,
+  },
+  downloadText: {
+    ...Typography.subheadline,
+    fontWeight: '600',
+  },
+  downloadProgressText: {
+    ...Typography.footnote,
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 340,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    padding: 24,
+    gap: 16,
+    elevation: 5,
+    boxShadow: '0 10px 30px rgba(0, 0, 0, 0.15)',
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  modalIconCircle: {
+    width: 38,
+    height: 38,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalTitle: {
+    ...Typography.headline,
+    fontWeight: '700',
+  },
+  modalDescription: {
+    ...Typography.footnote,
+    lineHeight: 18,
+  },
+  modalInputGroup: {
+    gap: 8,
+  },
+  modalInputLabel: {
+    ...Typography.overline,
+    marginLeft: 4,
+  },
+  modalInputWrapper: {
+    borderWidth: 1,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    paddingHorizontal: 12,
+    height: 48,
+    justifyContent: 'center',
+  },
+  modalInput: {
+    height: '100%',
+    ...Typography.callout,
+  },
+  modalActionRow: {
+    flexDirection: 'row',
+    gap: 12,
+    marginTop: 8,
+  },
+  modalCancelButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    borderWidth: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCancelText: {
+    ...Typography.buttonSmall,
+    fontWeight: '600',
+  },
+  modalSubmitButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalSubmitText: {
+    color: '#ffffff',
+    ...Typography.buttonSmall,
+    fontWeight: '600',
   },
 });

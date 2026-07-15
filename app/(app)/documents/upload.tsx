@@ -22,6 +22,7 @@ import { formatBytes } from '@/lib/file-utils';
 import { useDocumentsStore } from '@/store/documents-store';
 import { useIndividuals } from '@/hooks/use-individuals';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BackgroundLogo } from '@/components/background-logo';
 
 export default function DocumentUploadScreen() {
   const { section, categoryId, categoryName, individualName } = useLocalSearchParams<{
@@ -33,7 +34,7 @@ export default function DocumentUploadScreen() {
 
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
 
   const sectionEnum = section as DocumentSection;
@@ -137,6 +138,7 @@ export default function DocumentUploadScreen() {
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
       style={[styles.container, { backgroundColor: colors.background }]}
     >
+      <BackgroundLogo />
       <Stack.Screen options={{ title: 'Upload Document' }} />
       
       <ScrollView

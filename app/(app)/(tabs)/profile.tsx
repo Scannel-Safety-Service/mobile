@@ -7,10 +7,11 @@ import * as Haptics from 'expo-haptics';
 import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
 import { LinearGradient } from 'expo-linear-gradient';
+import { BackgroundLogo } from '@/components/background-logo';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme];
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const { user, logout, status } = useAuthStore();
 
   const handleLogout = async () => {
@@ -22,15 +23,15 @@ export default function ProfileScreen() {
   const isDark = colorScheme === 'dark';
 
   const detailItems = [
-    { icon: 'briefcase-outline' as const, label: 'Access Role', value: user?.role === 'COMPANY_USER' ? 'Company Employee' : user?.role || '' },
-    { icon: 'business-outline' as const, label: 'Company ID', value: user?.companyId || 'N/A' },
-    { icon: 'key-outline' as const, label: 'Security Channel', value: 'Mobile (Isolated JWT)' },
-    { icon: 'information-circle-outline' as const, label: 'Client Version', value: '1.0.0 (Expo)' },
+    { icon: 'card-outline' as const, label: 'Employee ID', value: user?.userCode || 'N/A' },
+    { icon: 'business-outline' as const, label: 'Company Name', value: user?.companyName || 'N/A' },
   ];
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
-      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
+    <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <BackgroundLogo />
+      <SafeAreaView style={styles.safeArea}>
+        <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
 
         {/* Profile Hero Header */}
         <View style={styles.heroCard}>
@@ -47,14 +48,7 @@ export default function ProfileScreen() {
             <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
             <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.03)' }]} />
 
-            {/* Avatar */}
-            <View style={styles.avatarRing}>
-              <View style={styles.avatar}>
-                <Text style={styles.avatarText}>
-                  {user?.firstName?.charAt(0) || 'E'}
-                </Text>
-              </View>
-            </View>
+
 
             <Text style={styles.userName}>
               {user ? `${user.firstName} ${user.lastName}`.trim() : 'Loading Employee...'}
@@ -127,7 +121,8 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
-    </SafeAreaView>
+      </SafeAreaView>
+    </View>
   );
 }
 
@@ -175,29 +170,7 @@ const styles = StyleSheet.create({
     height: 120,
     borderRadius: 60,
   },
-  avatarRing: {
-    width: 104,
-    height: 104,
-    borderRadius: 52,
-    borderWidth: 3,
-    borderColor: 'rgba(255,255,255,0.25)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  avatar: {
-    width: 92,
-    height: 92,
-    borderRadius: 46,
-    backgroundColor: 'rgba(255,255,255,0.2)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  avatarText: {
-    color: '#ffffff',
-    fontSize: 38,
-    fontWeight: '600',
-  },
+
   userName: {
     ...Typography.title2,
     color: '#ffffff',

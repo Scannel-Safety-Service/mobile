@@ -9,6 +9,8 @@ import { DocumentSection } from '@/types/document';
 import { useDocuments } from '@/hooks/use-documents';
 import { DocumentRow } from '@/components/documents/document-row';
 import { EmptyState } from '@/components/documents/empty-state';
+import { useViewDocument } from '@/hooks/use-view-document';
+import { BackgroundLogo } from '@/components/background-logo';
 
 export default function SubfolderScreen() {
   const { categoryId, categoryName, section, isIndividual } = useLocalSearchParams<{
@@ -20,7 +22,10 @@ export default function SubfolderScreen() {
   
   const router = useRouter();
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
+  const isDark = colorScheme === 'dark';
+
+  const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
 
   const sectionEnum = section as DocumentSection;
   const isInd = isIndividual === 'true';
@@ -38,12 +43,11 @@ export default function SubfolderScreen() {
     refetch();
   }, [categoryId]);
 
-  const handleDocumentPress = useCallback((id: string, fileName: string) => {
-    router.push({
-      pathname: '/(app)/documents/viewer',
-      params: { id, fileName },
-    });
-  }, [router]);
+  const handleDocumentPress = useCallback((id: string) => {
+    const doc = documents?.find((d) => d.id === id);
+    if (!doc) return;
+    viewDocument(doc.fileUrl, doc.originalFileName);
+  }, [documents, viewDocument]);
 
   const handleUploadPress = () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
@@ -73,6 +77,7 @@ export default function SubfolderScreen() {
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
+      <BackgroundLogo />
       <Stack.Screen options={{ title: categoryName || 'Subfolder' }} />
 
       {isLoading ? (
@@ -119,6 +124,22 @@ export default function SubfolderScreen() {
       >
         <Ionicons name="cloud-upload" size={24} color="#ffffff" />
       </Pressable>
+
+      {isDownloading && (
+        <View style={styles.downloadOverlay}>
+          <View style={[styles.downloadCard, { backgroundColor: isDark ? 'rgba(8,23,41,0.95)' : 'rgba(255,255,255,0.95)', borderColor: colors.cardBorder, borderWidth: 1 }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.downloadText, { color: colors.text }]}>
+              Opening Document...
+            </Text>
+            {downloadProgress > 0 && (
+              <Text style={[styles.downloadProgressText, { color: colors.muted }]}>
+                {Math.round(downloadProgress * 100)}%
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -169,5 +190,27 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     elevation: 6,
     boxShadow: '0 6px 20px rgba(21, 91, 157, 0.3)',
+  },
+  downloadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  downloadCard: {
+    padding: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    gap: 12,
+    elevation: 5,
+    minWidth: 200,
+  },
+  downloadText: {
+    ...Typography.subheadline,
+    fontWeight: '600',
+  },
+  downloadProgressText: {
+    ...Typography.footnote,
   },
 });
