@@ -1,16 +1,19 @@
 import React, { useCallback } from 'react';
-import { StyleSheet, View, Text, FlatList, SafeAreaView } from 'react-native';
+import { StyleSheet, View, Text, FlatList } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { Image } from 'expo-image';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { PREDEFINED_FOLDERS, FolderDefinition } from '@/constants/folders';
 import { FolderCard } from '@/components/documents/folder-card';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DocumentsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
 
   // Navigate to specific folder view
   const handleFolderPress = useCallback((sectionKey: string) => {
@@ -43,6 +46,7 @@ export default function DocumentsScreen() {
         />
       </View>
 
+      {/* Header */}
       <View style={styles.header}>
         <Text style={[styles.title, { color: colors.text }]}>Safety Documents</Text>
         <Text style={[styles.subtitle, { color: colors.muted }]}>
@@ -77,30 +81,29 @@ const styles = StyleSheet.create({
   backgroundImage: {
     width: '85%',
     height: '85%',
-    opacity: 0.08, // Low opacity watermark look
+    opacity: 0.05,
   },
   header: {
     paddingHorizontal: 24,
     paddingTop: 16,
-    paddingBottom: 24,
-    gap: 4,
+    paddingBottom: 20,
+    gap: 6,
     backgroundColor: 'transparent',
   },
   title: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    ...Typography.title1,
   },
   subtitle: {
-    fontSize: 14,
+    ...Typography.subheadline,
     fontWeight: '500',
   },
   gridContent: {
-    paddingHorizontal: 24,
+    paddingHorizontal: 20,
     paddingBottom: 32,
     gap: 16,
   },
   gridRow: {
-    justifyContent: 'space-between',
+    justifyContent: 'center',
+    gap: 16,
   },
 });

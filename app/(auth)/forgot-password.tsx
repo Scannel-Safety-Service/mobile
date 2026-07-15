@@ -14,8 +14,9 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { apiRequest } from '@/lib/api';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ForgotPasswordScreen() {
   const router = useRouter();
@@ -79,144 +80,178 @@ export default function ForgotPasswordScreen() {
   const isDark = colorScheme === 'dark';
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View style={styles.cardContainer}>
-        {/* Header Area */}
-        <View style={styles.headerArea}>
-          <Image
-            source={require('@/assets/images/logo-home.png')}
-            style={styles.logoImage}
-            contentFit="contain"
-          />
-          <Text style={[styles.title, { color: colors.text }]}>
-            Reset Password
-          </Text>
-          <Text style={[styles.subtitle, { color: colors.muted }]}>
-            {isSuccess
-              ? 'Check your inbox for further instructions.'
-              : 'Enter your email address to receive a password reset link.'}
-          </Text>
-        </View>
+    <View style={styles.outerContainer}>
+      {/* Gradient Background */}
+      <LinearGradient
+        colors={isDark
+          ? ['#040e1a', '#0a1f38', '#0e2a4a', '#040e1a']
+          : ['#e8f1fb', '#d4e6f6', '#c0dbf1', '#f4f8fc']
+        }
+        locations={[0, 0.3, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+      />
 
-        {!isSuccess ? (
-          /* Input Form */
-          <View style={styles.formArea}>
-            <View style={styles.inputGroup}>
-              <Text style={[styles.inputLabel, { color: colors.muted }]}>EMAIL ADDRESS</Text>
-              <View
-                style={[
-                  styles.inputWrapper,
-                  {
-                    backgroundColor: isDark ? '#0b1624' : '#ffffff',
-                    borderColor: localError ? '#f43f5e' : colors.cardBorder,
-                  },
-                ]}
-              >
-                <Ionicons name="mail-outline" size={20} color={colors.icon} style={styles.inputIcon} />
-                <TextInput
-                  style={[styles.input, { color: colors.text }]}
-                  placeholder="Enter registered email"
-                  placeholderTextColor={colors.muted}
-                  value={email}
-                  onChangeText={(text) => {
-                    setEmail(text);
-                    if (localError) setLocalError(null);
-                  }}
-                  autoCapitalize="none"
-                  keyboardType="email-address"
-                  autoComplete="email"
-                  editable={!isSubmitting}
-                  onSubmitEditing={handleResetRequest}
-                  returnKeyType="send"
-                />
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <View style={styles.content}>
+          {/* Header Area */}
+          <View style={styles.headerArea}>
+            <Image
+              source={require('@/assets/images/logo-home.png')}
+              style={styles.logoImage}
+              contentFit="contain"
+            />
+            <Text style={[styles.title, { color: colors.text }]}>
+              Reset Password
+            </Text>
+            <Text style={[styles.subtitle, { color: colors.muted }]}>
+              {isSuccess
+                ? 'Check your inbox for further instructions.'
+                : 'Enter your email address to receive a password reset link.'}
+            </Text>
+          </View>
+
+          {/* Glass Card */}
+          <View
+            style={[
+              styles.formCard,
+              {
+                backgroundColor: isDark ? 'rgba(8,23,41,0.75)' : 'rgba(255,255,255,0.82)',
+                borderColor: isDark ? 'rgba(15,39,64,0.6)' : 'rgba(226,239,250,0.8)',
+              },
+            ]}
+          >
+            {!isSuccess ? (
+              /* Input Form */
+              <View style={styles.formArea}>
+                <View style={styles.inputGroup}>
+                  <Text style={[styles.inputLabel, { color: colors.muted }]}>EMAIL ADDRESS</Text>
+                  <View
+                    style={[
+                      styles.inputWrapper,
+                      {
+                        backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
+                        borderColor: localError ? '#f43f5e' : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                      },
+                    ]}
+                  >
+                    <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+                      <Ionicons name="mail-outline" size={18} color={colors.primary} />
+                    </View>
+                    <TextInput
+                      style={[styles.input, { color: colors.text }]}
+                      placeholder="Enter registered email"
+                      placeholderTextColor={colors.muted}
+                      value={email}
+                      onChangeText={(text) => {
+                        setEmail(text);
+                        if (localError) setLocalError(null);
+                      }}
+                      autoCapitalize="none"
+                      keyboardType="email-address"
+                      autoComplete="email"
+                      editable={!isSubmitting}
+                      onSubmitEditing={handleResetRequest}
+                      returnKeyType="send"
+                    />
+                  </View>
+                </View>
+
+                {/* Error Message */}
+                {localError ? (
+                  <View style={[styles.errorContainer, { backgroundColor: isDark ? 'rgba(58,15,20,0.6)' : 'rgba(253,242,242,0.9)' }]}>
+                    <Ionicons name="alert-circle" size={18} color="#f43f5e" />
+                    <Text style={styles.errorText}>{localError}</Text>
+                  </View>
+                ) : null}
+
+                {/* Submit Button */}
+                <Pressable
+                  onPress={isSubmitting ? undefined : handleResetRequest}
+                  style={({ pressed }) => [
+                    styles.submitButton,
+                    {
+                      opacity: pressed ? 0.9 : 1,
+                      transform: [{ scale: pressed ? 0.985 : 1 }],
+                    },
+                  ]}
+                >
+                  <LinearGradient
+                    colors={isSubmitting
+                      ? [colors.secondary, colors.secondary]
+                      : [colors.primary, isDark ? '#3d8fd4' : '#1a6db8']
+                    }
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 1 }}
+                    style={styles.submitGradient}
+                  >
+                    {isSubmitting ? (
+                      <View style={styles.loadingRow}>
+                        <ActivityIndicator color="#ffffff" size="small" />
+                        <Text style={styles.submitButtonText}>Sending reset link...</Text>
+                      </View>
+                    ) : (
+                      <Text style={styles.submitButtonText}>Send Reset Link</Text>
+                    )}
+                  </LinearGradient>
+                </Pressable>
               </View>
-            </View>
-
-            {/* Error Message */}
-            <View style={styles.errorSlot}>
-              {localError ? (
-                <View style={[styles.errorContainer, { backgroundColor: isDark ? '#3a0f14' : '#fdf2f2' }]}>
-                  <Ionicons name="alert-circle" size={18} color="#f43f5e" />
-                  <Text style={styles.errorText}>{localError}</Text>
+            ) : (
+              /* Success Message View */
+              <View style={styles.successArea}>
+                <View style={[styles.successIconCircle, { backgroundColor: isDark ? 'rgba(20,42,30,0.8)' : '#ecfdf5' }]}>
+                  <Ionicons name="checkmark-circle" size={52} color="#10b981" />
                 </View>
-              ) : null}
-            </View>
-
-            {/* Submit Button */}
-            <Pressable
-              onPress={isSubmitting ? undefined : handleResetRequest}
-              style={({ pressed }) => [
-                styles.submitButton,
-                {
-                  backgroundColor: isSubmitting ? colors.secondary : colors.primary,
-                  opacity: pressed ? 0.88 : 1,
-                },
-              ]}
-            >
-              {isSubmitting ? (
-                <View style={styles.loadingRow}>
-                  <ActivityIndicator color="#ffffff" size="small" />
-                  <Text style={styles.submitButtonText}>Sending reset link...</Text>
-                </View>
-              ) : (
-                <Text style={styles.submitButtonText}>Send Reset Link</Text>
-              )}
-            </Pressable>
+                <Text style={[styles.successText, { color: colors.text }]}>
+                  Email Sent Successfully
+                </Text>
+                <Text style={[styles.successDescription, { color: colors.muted }]}>
+                  If an account is associated with <Text style={styles.boldText}>{email.trim()}</Text>, you will receive an email shortly with a password reset link.
+                </Text>
+              </View>
+            )}
           </View>
-        ) : (
-          /* Success Message View */
-          <View style={styles.successArea}>
-            <View style={[styles.successIconCircle, { backgroundColor: isDark ? '#142a1e' : '#ecfdf5' }]}>
-              <Ionicons name="checkmark-circle-outline" size={48} color="#10b981" />
-            </View>
-            <Text style={[styles.successText, { color: colors.text }]}>
-              Email Sent Successfully
-            </Text>
-            <Text style={[styles.successDescription, { color: colors.muted }]}>
-              If an account is associated with <Text style={styles.boldText}>{email.trim()}</Text>, you will receive an email shortly with a password reset link.
-            </Text>
-          </View>
-        )}
 
-        {/* Back navigation */}
-        <Pressable
-          onPress={() => {
-            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-            router.back();
-          }}
-          style={({ pressed }) => [
-            styles.backButton,
-            {
-              opacity: pressed ? 0.6 : 1,
-            },
-          ]}
-          hitSlop={12}
-        >
-          <Ionicons name="arrow-back-outline" size={18} color={colors.primary} />
-          <Text style={[styles.backButtonText, { color: colors.primary }]}>
-            Back to Sign In
-          </Text>
-        </Pressable>
-      </View>
-    </KeyboardAvoidingView>
+          {/* Back navigation */}
+          <Pressable
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              router.back();
+            }}
+            style={({ pressed }) => [
+              styles.backButton,
+              { opacity: pressed ? 0.6 : 1 },
+            ]}
+            hitSlop={12}
+          >
+            <Ionicons name="arrow-back-outline" size={18} color={colors.primary} />
+            <Text style={[styles.backButtonText, { color: colors.primary }]}>
+              Back to Sign In
+            </Text>
+          </Pressable>
+        </View>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
   },
-  cardContainer: {
+  content: {
+    paddingHorizontal: 24,
     gap: 28,
   },
   headerArea: {
     alignItems: 'center',
-    gap: 8,
+    gap: 10,
   },
   logoImage: {
     width: 200,
@@ -224,61 +259,68 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   title: {
-    fontSize: 22,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    ...Typography.title2,
   },
   subtitle: {
-    fontSize: 14,
+    ...Typography.subheadline,
     textAlign: 'center',
-    lineHeight: 20,
     paddingHorizontal: 12,
   },
+  formCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    padding: 24,
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
+  },
   formArea: {
-    gap: 12,
+    gap: 16,
   },
   inputGroup: {
     gap: 8,
   },
   inputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
+    ...Typography.overline,
+    marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     borderCurve: 'continuous',
-    paddingHorizontal: 16,
-    height: 52,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    height: 56,
+    gap: 10,
   },
-  inputIcon: {
-    marginRight: 12,
+  inputIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
     height: '100%',
-    fontSize: 15,
-  },
-  errorSlot: {
-    minHeight: 44,
+    ...Typography.callout,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     borderCurve: 'continuous',
   },
   errorText: {
     color: '#f43f5e',
-    fontSize: 13,
+    ...Typography.footnote,
     fontWeight: '500',
     flex: 1,
-    lineHeight: 18,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -286,40 +328,43 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitButton: {
-    height: 54,
-    borderRadius: 27,
+    marginTop: 4,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 4px 16px rgba(21, 91, 157, 0.25)',
+  },
+  submitGradient: {
+    height: 56,
+    borderRadius: 16,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
   },
   submitButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    ...Typography.headline,
   },
   successArea: {
     alignItems: 'center',
     gap: 16,
-    paddingVertical: 12,
+    paddingVertical: 16,
   },
   successIconCircle: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    width: 88,
+    height: 88,
+    borderRadius: 44,
     justifyContent: 'center',
     alignItems: 'center',
   },
   successText: {
-    fontSize: 18,
+    ...Typography.title3,
     fontWeight: '700',
-    letterSpacing: -0.2,
   },
   successDescription: {
-    fontSize: 14,
+    ...Typography.subheadline,
     textAlign: 'center',
-    lineHeight: 22,
-    paddingHorizontal: 16,
+    paddingHorizontal: 8,
   },
   boldText: {
     fontWeight: '600',
@@ -330,9 +375,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     gap: 6,
     paddingVertical: 8,
+    minHeight: 48,
   },
   backButtonText: {
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.buttonSmall,
   },
 });

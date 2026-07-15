@@ -1,6 +1,12 @@
 {
   "version": 1,
   "skills": {
+    "mobile-design": {
+      "source": "sickn33/antigravity-awesome-skills",
+      "sourceType": "github",
+      "skillPath": "skills/mobile-design/SKILL.md",
+      "computedHash": "69adceeba77c124af3076449992be61ba618ee72ddef2c73d1f59b0d3a9b1188"
+    },
     "vercel-react-native-skills": {
       "source": "vercel-labs/agent-skills",
       "sourceType": "github",

@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { DocumentSection } from '@/types/document';
 import { useDocuments } from '@/hooks/use-documents';
 import { DocumentRow } from '@/components/documents/document-row';
@@ -137,34 +137,37 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: 20,
     paddingTop: 12,
-    paddingBottom: 80,
+    paddingBottom: 100,
+    gap: 2,
   },
   errorText: {
-    fontSize: 14,
+    ...Typography.subheadline,
     textAlign: 'center',
-    lineHeight: 20,
   },
   retryButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    paddingHorizontal: 28,
+    paddingVertical: 14,
+    borderRadius: 16,
     borderCurve: 'continuous',
+    minHeight: 48,
+    justifyContent: 'center',
+    boxShadow: '0 4px 12px rgba(21, 91, 157, 0.2)',
   },
   retryText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.buttonSmall,
   },
   fab: {
     position: 'absolute',
-    bottom: 24,
+    bottom: 28,
     right: 24,
-    width: 56,
-    height: 56,
-    borderRadius: 28,
+    width: 60,
+    height: 60,
+    borderRadius: 20,
+    borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
-    elevation: 4,
-    boxShadow: '0 4px 8px rgba(0, 0, 0, 0.15)',
+    elevation: 6,
+    boxShadow: '0 6px 20px rgba(21, 91, 157, 0.3)',
   },
 });

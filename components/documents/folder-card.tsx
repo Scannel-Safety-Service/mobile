@@ -15,7 +15,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 
 interface FolderCardProps {
   label: string;
@@ -33,11 +33,20 @@ const ICON_COMPONENTS: Record<string, React.ComponentType<any>> = {
   'ribbon': Award,
 };
 
-// Spring configuration for premium tactile bounce
+const ACCENT_COLORS: Record<string, { lightBg: string; darkBg: string; iconColor: string }> = {
+  'shield-checkmark': { lightBg: 'rgba(16, 185, 129, 0.08)', darkBg: 'rgba(16, 185, 129, 0.12)', iconColor: '#10b981' },
+  'business': { lightBg: 'rgba(59, 130, 246, 0.08)', darkBg: 'rgba(59, 130, 246, 0.12)', iconColor: '#3b82f6' },
+  'warning': { lightBg: 'rgba(245, 158, 11, 0.08)', darkBg: 'rgba(245, 158, 11, 0.12)', iconColor: '#f59e0b' },
+  'clipboard': { lightBg: 'rgba(139, 92, 246, 0.08)', darkBg: 'rgba(139, 92, 246, 0.12)', iconColor: '#8b5cf6' },
+  'school': { lightBg: 'rgba(236, 72, 153, 0.08)', darkBg: 'rgba(236, 72, 153, 0.12)', iconColor: '#ec4899' },
+  'ribbon': { lightBg: 'rgba(244, 63, 94, 0.08)', darkBg: 'rgba(244, 63, 94, 0.12)', iconColor: '#f43f5e' },
+};
+
+// Spring configuration for tactile bounce
 const SPRING_CONFIG = {
-  damping: 16,
-  stiffness: 220,
-  mass: 0.8,
+  damping: 15,
+  stiffness: 240,
+  mass: 0.6,
 };
 
 export const FolderCard = memo(function FolderCard({
@@ -50,8 +59,12 @@ export const FolderCard = memo(function FolderCard({
   const colors = Colors[colorScheme ?? 'light'];
 
   const IconComponent = ICON_COMPONENTS[iconName] || FileText;
+  const accent = ACCENT_COLORS[iconName] || {
+    lightBg: 'rgba(21, 91, 157, 0.06)',
+    darkBg: 'rgba(86, 185, 255, 0.1)',
+    iconColor: colors.primary,
+  };
 
-  // Reanimated shared value for tracking press interpolation
   const pressProgress = useSharedValue(0);
 
   const handlePressIn = () => {
@@ -67,33 +80,20 @@ export const FolderCard = memo(function FolderCard({
     onPress();
   };
 
-  // Smooth UI-thread spring transformation styles
   const animatedCardStyle = useAnimatedStyle(() => {
     return {
       transform: [
-        { translateY: pressProgress.value * 6 }, // smoothly sink down into the base plate
-        { scale: 1 - pressProgress.value * 0.02 }, // scale down slightly for depth
+        { scale: 1 - pressProgress.value * 0.04 },
       ],
     };
   });
 
-  const textColor = isDark ? '#040e1a' : '#ffffff';
-  const innerBoxBg = isDark ? '#040e1a' : '#ffffff';
-  const iconColor = colors.primary;
-
-  // Premium bevel highlights for light reflection on top cut-edges
-  const topHighlight = isDark ? 'rgba(255, 255, 255, 0.28)' : 'rgba(255, 255, 255, 0.48)';
-  const sideHighlight = isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(255, 255, 255, 0.2)';
-  const bottomShadow = isDark ? 'rgba(0, 0, 0, 0.25)' : 'rgba(0, 0, 0, 0.25)';
-
-  const baseDepthColor = isDark ? '#2b7cc1' : '#0e4170';
+  const cardBg = isDark ? 'rgba(8, 23, 41, 0.75)' : '#ffffff';
+  const cardBorder = isDark ? 'rgba(15, 39, 64, 0.6)' : 'rgba(226, 239, 250, 0.8)';
+  const iconBoxBg = isDark ? accent.darkBg : accent.lightBg;
 
   return (
     <View style={styles.container}>
-      {/* Static 3D Depth Shadow base plate */}
-      <View style={[styles.basePlate, { backgroundColor: baseDepthColor }]} />
-
-      {/* Reanimated Animated card container */}
       <Animated.View style={[styles.animatedWrapper, animatedCardStyle]}>
         <Pressable
           onPressIn={handlePressIn}
@@ -102,31 +102,19 @@ export const FolderCard = memo(function FolderCard({
           style={[
             styles.card,
             {
-              backgroundColor: colors.primary,
-              // Apply multi-sided reflection borders for a glassy bevel effect
-              borderTopColor: topHighlight,
-              borderLeftColor: sideHighlight,
-              borderRightColor: sideHighlight,
-              borderBottomColor: bottomShadow,
+              backgroundColor: cardBg,
+              borderColor: cardBorder,
             },
           ]}
         >
-          {/* Glowing Icon Box */}
-          <View
-            style={[
-              styles.iconBox,
-              {
-                backgroundColor: innerBoxBg,
-                borderColor: isDark ? 'rgba(4, 14, 26, 0.12)' : 'rgba(255, 255, 255, 0.25)',
-              },
-            ]}
-          >
-            <IconComponent size={36} color={iconColor} strokeWidth={1.8} />
+          {/* Glowing Circular Icon Box */}
+          <View style={[styles.iconCircle, { backgroundColor: iconBoxBg }]}>
+            <IconComponent size={26} color={accent.iconColor} strokeWidth={2} />
           </View>
 
           {/* Label */}
           <View style={styles.textContainer}>
-            <Text style={[styles.label, { color: textColor }]} numberOfLines={2}>
+            <Text style={[styles.label, { color: colors.text }]} numberOfLines={2}>
               {label}
             </Text>
           </View>
@@ -138,58 +126,42 @@ export const FolderCard = memo(function FolderCard({
 
 const styles = StyleSheet.create({
   container: {
-    width: '47.5%',
-    aspectRatio: 0.94,
+    width: '45%',
+    aspectRatio: 1.0, // Make it a perfect clean square folder card
     position: 'relative',
-    marginVertical: 10,
-  },
-  basePlate: {
-    position: 'absolute',
-    top: 6,
-    left: 0,
-    right: 0,
-    bottom: -6,
-    borderRadius: 18,
   },
   animatedWrapper: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    bottom: 0,
-    borderRadius: 18,
-    // Soft high-fidelity card shadow using modern boxShadow syntax
-    boxShadow: '0 4px 10px rgba(0, 0, 0, 0.08)',
+    flex: 1,
+    borderRadius: 24,
+    overflow: 'hidden',
+    boxShadow: '0 4px 16px rgba(0, 0, 0, 0.03)',
   },
   card: {
     flex: 1,
     borderWidth: 1.2,
-    borderRadius: 18,
+    borderRadius: 24,
     borderCurve: 'continuous',
     padding: 16,
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
   },
-  iconBox: {
-    width: 64,
-    height: 64,
-    borderRadius: 14,
-    borderCurve: 'continuous',
-    borderWidth: 1.5,
+  iconCircle: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: 'center',
     alignItems: 'center',
   },
   textContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 2,
+    paddingHorizontal: 4,
   },
   label: {
-    fontSize: 14,
-    fontWeight: '800',
-    lineHeight: 18,
-    letterSpacing: -0.15,
+    ...Typography.subheadline,
+    fontWeight: '700',
     textAlign: 'center',
+    lineHeight: 18,
   },
 });

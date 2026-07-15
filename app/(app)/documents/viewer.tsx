@@ -7,9 +7,10 @@ import * as Sharing from 'expo-sharing';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
 import { API_URL } from '@/lib/api';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DocumentViewerScreen() {
   const { id, fileName } = useLocalSearchParams<{ id: string; fileName: string }>();
@@ -112,22 +113,54 @@ export default function DocumentViewerScreen() {
       {loading ? (
         /* Progress loader */
         <View style={styles.centerContainer}>
-          <ActivityIndicator size="large" color={colors.primary} />
-          <Text style={[styles.progressText, { color: colors.text }]}>
-            Loading Document... {Math.round(downloadProgress * 100)}%
-          </Text>
+          <View style={[styles.loaderCard, { backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)', borderColor: colors.cardBorder }]}>
+            <ActivityIndicator size="large" color={colors.primary} style={{ marginBottom: 4 }} />
+            <Text style={[styles.progressText, { color: colors.text }]}>
+              Downloading Document
+            </Text>
+            {/* Custom Premium Progress Bar */}
+            <View style={[styles.progressBarBg, { backgroundColor: isDark ? '#0f2740' : '#e2effa' }]}>
+              <View
+                style={[
+                  styles.progressBarFill,
+                  {
+                    width: `${Math.max(5, Math.min(100, Math.round(downloadProgress * 100)))}%`,
+                    backgroundColor: colors.primary,
+                  },
+                ]}
+              />
+            </View>
+            <Text style={[styles.progressPercent, { color: colors.muted }]}>
+              {Math.round(downloadProgress * 100)}% Completed
+            </Text>
+          </View>
         </View>
       ) : error ? (
         /* Error Layout */
         <View style={styles.centerContainer}>
-          <Ionicons name="alert-circle-outline" size={48} color="#f43f5e" />
-          <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
-          <Pressable
-            onPress={() => router.back()}
-            style={[styles.backButton, { backgroundColor: colors.primary }]}
-          >
-            <Text style={styles.backButtonText}>Go Back</Text>
-          </Pressable>
+          <View style={[styles.loaderCard, { backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)', borderColor: colors.cardBorder, alignItems: 'center' }]}>
+            <Ionicons name="alert-circle-outline" size={48} color="#f43f5e" style={{ marginBottom: 4 }} />
+            <Text style={[styles.errorText, { color: colors.text }]}>{error}</Text>
+            <Pressable
+              onPress={() => router.back()}
+              style={({ pressed }) => [
+                styles.backButton,
+                {
+                  opacity: pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.98 : 1 }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={[colors.primary, isDark ? '#3d8fd4' : '#1a6db8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.btnGradient}
+              >
+                <Text style={styles.backButtonText}>Go Back</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
         </View>
       ) : isIos && localUri ? (
         /* iOS: Render inside in-app WebView */
@@ -144,35 +177,57 @@ export default function DocumentViewerScreen() {
               onPress={() => handleOpenNatively()}
               style={({ pressed }) => [
                 styles.actionButton,
-                { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
+                {
+                  opacity: pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.985 : 1 }],
+                },
               ]}
             >
-              <Ionicons name="share-outline" size={20} color="#ffffff" />
-              <Text style={styles.actionButtonText}>Share / Print</Text>
+              <LinearGradient
+                colors={[colors.primary, isDark ? '#3d8fd4' : '#1a6db8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.actionGradient}
+              >
+                <Ionicons name="share-outline" size={20} color="#ffffff" />
+                <Text style={styles.actionButtonText}>Share / Print</Text>
+              </LinearGradient>
             </Pressable>
           </View>
         </View>
       ) : (
         /* Android & Fallbacks: Display detail layout and native viewer trigger */
         <View style={styles.centerContainer}>
-          <View style={[styles.iconCircle, { backgroundColor: isDark ? '#3d1619' : '#fef2f2' }]}>
-            <Ionicons name="document-text" size={64} color="#ef4444" />
-          </View>
-          <Text style={[styles.title, { color: colors.text }]}>Document Downloaded</Text>
-          <Text style={[styles.desc, { color: colors.muted }]}>
-            {fileName}
-          </Text>
+          <View style={[styles.loaderCard, { backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)', borderColor: colors.cardBorder, alignItems: 'center' }]}>
+            <View style={[styles.iconCircle, { backgroundColor: isDark ? 'rgba(61,22,25,0.6)' : '#fef2f2' }]}>
+              <Ionicons name="document-text" size={48} color="#ef4444" />
+            </View>
+            <Text style={[styles.title, { color: colors.text }]}>Document Ready</Text>
+            <Text style={[styles.desc, { color: colors.muted }]} numberOfLines={2}>
+              {fileName}
+            </Text>
 
-          <Pressable
-            onPress={() => handleOpenNatively()}
-            style={({ pressed }) => [
-              styles.openButton,
-              { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
-            ]}
-          >
-            <Ionicons name="open-outline" size={20} color="#ffffff" />
-            <Text style={styles.openButtonText}>Open in PDF Viewer</Text>
-          </Pressable>
+            <Pressable
+              onPress={() => handleOpenNatively()}
+              style={({ pressed }) => [
+                styles.openButton,
+                {
+                  opacity: pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.985 : 1 }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={[colors.primary, isDark ? '#3d8fd4' : '#1a6db8']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.actionGradient}
+              >
+                <Ionicons name="open-outline" size={20} color="#ffffff" />
+                <Text style={styles.openButtonText}>Open in PDF Viewer</Text>
+              </LinearGradient>
+            </Pressable>
+          </View>
         </View>
       )}
     </View>
@@ -188,27 +243,57 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
+  },
+  loaderCard: {
+    width: '100%',
+    borderWidth: 1,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    padding: 24,
+    alignItems: 'center',
     gap: 16,
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.05)',
   },
   progressText: {
-    fontSize: 14,
+    ...Typography.headline,
+    fontWeight: '700',
+  },
+  progressBarBg: {
+    width: '100%',
+    height: 8,
+    borderRadius: 4,
+    overflow: 'hidden',
+  },
+  progressBarFill: {
+    height: '100%',
+    borderRadius: 4,
+  },
+  progressPercent: {
+    ...Typography.footnote,
     fontWeight: '600',
   },
   errorText: {
-    fontSize: 14,
+    ...Typography.subheadline,
     textAlign: 'center',
     lineHeight: 20,
   },
   backButton: {
-    paddingHorizontal: 24,
-    paddingVertical: 12,
-    borderRadius: 24,
+    width: '100%',
+    height: 52,
+    borderRadius: 16,
     borderCurve: 'continuous',
+    overflow: 'hidden',
+    marginTop: 8,
+    boxShadow: '0 4px 12px rgba(244, 63, 94, 0.2)',
+  },
+  btnGradient: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   backButtonText: {
     color: '#ffffff',
-    fontSize: 14,
-    fontWeight: '600',
+    ...Typography.buttonSmall,
   },
   webContainer: {
     flex: 1,
@@ -223,50 +308,54 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   actionButton: {
+    width: '100%',
+    height: 52,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(21, 91, 157, 0.2)',
+  },
+  actionGradient: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 32,
-    paddingVertical: 14,
-    borderRadius: 28,
-    borderCurve: 'continuous',
   },
   actionButtonText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.button,
   },
   iconCircle: {
-    width: 100,
-    height: 100,
-    borderRadius: 50,
+    width: 80,
+    height: 80,
+    borderRadius: 24,
+    borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    marginBottom: 4,
   },
   title: {
-    fontSize: 18,
+    ...Typography.title3,
     fontWeight: '700',
   },
   desc: {
-    fontSize: 13,
+    ...Typography.footnote,
     textAlign: 'center',
     lineHeight: 18,
-    paddingHorizontal: 24,
-    marginBottom: 12,
+    paddingHorizontal: 16,
+    marginBottom: 8,
   },
   openButton: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
-    paddingHorizontal: 24,
-    paddingVertical: 14,
-    borderRadius: 28,
+    width: '100%',
+    height: 52,
+    borderRadius: 16,
     borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(21, 91, 157, 0.2)',
   },
   openButtonText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.button,
   },
 });

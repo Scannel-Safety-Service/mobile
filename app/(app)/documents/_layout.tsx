@@ -1,7 +1,7 @@
 import React from 'react';
 import { Stack } from 'expo-router';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 
 export default function DocumentsLayout() {
   const colorScheme = useColorScheme();
@@ -15,8 +15,7 @@ export default function DocumentsLayout() {
         },
         headerTintColor: colors.text,
         headerTitleStyle: {
-          fontWeight: '700',
-          fontSize: 18,
+          ...Typography.headline,
         },
         headerShadowVisible: false,
       }}
@@ -28,3 +27,4 @@ export default function DocumentsLayout() {
     </Stack>
   );
 }
+

@@ -3,7 +3,7 @@ import { StyleSheet, Text, View, Pressable } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 
 interface DocumentRowProps {
   id: string;
@@ -45,26 +45,31 @@ export const DocumentRow = memo(function DocumentRow({
       style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: colors.card,
-          borderColor: colors.cardBorder,
+          backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
+          borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
+          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
-        pressed && styles.pressed,
       ]}
     >
       <View style={styles.leftSection}>
-        <View style={[styles.iconContainer, { backgroundColor: isDark ? '#3d1619' : '#fef2f2' }]}>
-          <Ionicons name="document-text" size={24} color="#ef4444" />
+        <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(61,22,25,0.6)' : '#fef2f2' }]}>
+          <Ionicons name="document-text" size={22} color="#ef4444" />
         </View>
         <View style={styles.textContainer}>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {displayName}
           </Text>
-          <Text style={[styles.date, { color: colors.muted }]}>
-            Uploaded {formattedDate}
-          </Text>
+          <View style={styles.dateRow}>
+            <Ionicons name="time-outline" size={12} color={colors.muted} />
+            <Text style={[styles.date, { color: colors.muted }]}>
+              {formattedDate}
+            </Text>
+          </View>
         </View>
       </View>
-      <Ionicons name="eye-outline" size={18} color={colors.primary} />
+      <View style={[styles.viewBadge, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+        <Ionicons name="eye-outline" size={16} color={colors.primary} />
+      </View>
     </Pressable>
   );
 });
@@ -76,40 +81,48 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 14,
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 18,
     borderCurve: 'continuous',
-    marginVertical: 6,
-    boxShadow: '0 2px 6px rgba(0, 0, 0, 0.01)',
-  },
-  pressed: {
-    opacity: 0.85,
+    marginVertical: 5,
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
     flex: 1,
     marginRight: 12,
   },
   iconContainer: {
-    width: 42,
-    height: 42,
-    borderRadius: 10,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
   },
   textContainer: {
     flex: 1,
-    gap: 4,
+    gap: 5,
   },
   title: {
-    fontSize: 14,
+    ...Typography.subheadline,
     fontWeight: '600',
-    letterSpacing: -0.15,
+  },
+  dateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
   },
   date: {
-    fontSize: 11,
+    ...Typography.caption1,
     fontWeight: '500',
+  },
+  viewBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
 });

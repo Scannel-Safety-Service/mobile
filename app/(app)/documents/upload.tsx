@@ -14,13 +14,14 @@ import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { PREDEFINED_FOLDERS } from '@/constants/folders';
 import { DocumentSection } from '@/types/document';
 import { useFileUpload } from '@/hooks/use-file-upload';
 import { formatBytes } from '@/lib/file-utils';
 import { useDocumentsStore } from '@/store/documents-store';
 import { useIndividuals } from '@/hooks/use-individuals';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function DocumentUploadScreen() {
   const { section, categoryId, categoryName, individualName } = useLocalSearchParams<{
@@ -168,8 +169,10 @@ export default function DocumentUploadScreen() {
             
             {/* File selection slot */}
             {!selectedFile ? (
-              <View style={[styles.dashedBox, { borderColor: colors.cardBorder, backgroundColor: colors.card }]}>
-                <Ionicons name="cloud-upload-outline" size={48} color={colors.muted} />
+              <View style={[styles.dashedBox, { borderColor: colors.cardBorder, backgroundColor: isDark ? 'rgba(8,23,41,0.5)' : 'rgba(255,255,255,0.7)' }]}>
+                <View style={[styles.dashedIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.08)' : 'rgba(21,91,157,0.05)' }]}>
+                  <Ionicons name="cloud-upload-outline" size={32} color={colors.primary} />
+                </View>
                 <Text style={[styles.dashedTitle, { color: colors.text }]}>Select Document Source</Text>
                 <Text style={[styles.dashedDesc, { color: colors.muted }]}>
                   Upload PDF reports or take a quick photo of certificates.
@@ -181,11 +184,21 @@ export default function DocumentUploadScreen() {
                     onPress={pickDocument}
                     style={({ pressed }) => [
                       styles.pickerButton,
-                      { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
+                      {
+                        opacity: pressed ? 0.9 : 1,
+                        transform: [{ scale: pressed ? 0.98 : 1 }],
+                      },
                     ]}
                   >
-                    <Ionicons name="documents-outline" size={18} color="#ffffff" />
-                    <Text style={styles.pickerButtonText}>Files / PDF</Text>
+                    <LinearGradient
+                      colors={isDark ? ['#155B9D', '#1F6CB0'] : ['#155B9D', '#2B7CC1']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.pickerGradient}
+                    >
+                      <Ionicons name="documents-outline" size={18} color="#ffffff" />
+                      <Text style={styles.pickerButtonText}>Files / PDF</Text>
+                    </LinearGradient>
                   </Pressable>
 
                   {/* Camera */}
@@ -193,22 +206,32 @@ export default function DocumentUploadScreen() {
                     onPress={takePhoto}
                     style={({ pressed }) => [
                       styles.pickerButton,
-                      { backgroundColor: colors.primary, opacity: pressed ? 0.9 : 1 },
+                      {
+                        opacity: pressed ? 0.9 : 1,
+                        transform: [{ scale: pressed ? 0.98 : 1 }],
+                      },
                     ]}
                   >
-                    <Ionicons name="camera-outline" size={18} color="#ffffff" />
-                    <Text style={styles.pickerButtonText}>Use Camera</Text>
+                    <LinearGradient
+                      colors={isDark ? ['#2DA7FF', '#155B9D'] : ['#2DA7FF', '#1F6CB0']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={styles.pickerGradient}
+                    >
+                      <Ionicons name="camera-outline" size={18} color="#ffffff" />
+                      <Text style={styles.pickerButtonText}>Use Camera</Text>
+                    </LinearGradient>
                   </Pressable>
                 </View>
               </View>
             ) : (
               /* Selected File Details */
-              <View style={[styles.fileCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+              <View style={[styles.fileCard, { backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)', borderColor: colors.cardBorder }]}>
                 <View style={styles.fileRow}>
-                  <View style={[styles.fileIconBox, { backgroundColor: isDark ? '#3d1619' : '#fef2f2' }]}>
+                  <View style={[styles.fileIconBox, { backgroundColor: isDark ? 'rgba(61,22,25,0.6)' : '#fef2f2' }]}>
                     <Ionicons
                       name={selectedFile.type.includes('pdf') ? 'document-text' : 'image'}
-                      size={28}
+                      size={24}
                       color="#ef4444"
                     />
                   </View>
@@ -236,12 +259,14 @@ export default function DocumentUploadScreen() {
                   style={[
                     styles.inputWrapper,
                     {
-                      backgroundColor: isDark ? '#0b1624' : '#ffffff',
+                      backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
                       borderColor: colors.cardBorder,
                     },
                   ]}
                 >
-                  <Ionicons name="person-outline" size={20} color={colors.icon} style={styles.inputIcon} />
+                  <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+                    <Ionicons name="person-outline" size={18} color={colors.primary} />
+                  </View>
                   <Text style={[styles.inputText, { color: selectedIndividual ? colors.text : colors.muted, flex: 1 }]}>
                     {selectedIndividual || 'Select an individual...'}
                   </Text>
@@ -286,12 +311,14 @@ export default function DocumentUploadScreen() {
                   style={[
                     styles.inputWrapper,
                     {
-                      backgroundColor: isDark ? '#0b1624' : '#ffffff',
+                      backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
                       borderColor: displayError ? '#f43f5e' : colors.cardBorder,
                     },
                   ]}
                 >
-                  <Ionicons name="create-outline" size={20} color={colors.icon} style={styles.inputIcon} />
+                  <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+                    <Ionicons name="create-outline" size={18} color={colors.primary} />
+                  </View>
                   <TextInput
                     style={[styles.input, { color: colors.text }]}
                     placeholder="Enter document title"
@@ -313,7 +340,7 @@ export default function DocumentUploadScreen() {
             {/* Error alerts */}
             <View style={styles.errorSlot}>
               {displayError ? (
-                <View style={[styles.errorContainer, { backgroundColor: isDark ? '#3a0f14' : '#fdf2f2' }]}>
+                <View style={[styles.errorContainer, { backgroundColor: isDark ? 'rgba(58,15,20,0.6)' : 'rgba(253,242,242,0.9)' }]}>
                   <Ionicons name="alert-circle" size={18} color="#f43f5e" />
                   <Text style={styles.errorText}>{displayError}</Text>
                 </View>
@@ -327,22 +354,32 @@ export default function DocumentUploadScreen() {
                 style={({ pressed }) => [
                   styles.submitButton,
                   {
-                    backgroundColor: isLoading ? colors.secondary : colors.primary,
-                    opacity: pressed ? 0.88 : 1,
+                    opacity: pressed ? 0.9 : 1,
+                    transform: [{ scale: pressed ? 0.985 : 1 }],
                   },
                 ]}
               >
-                {isLoading ? (
-                  <View style={styles.loadingRow}>
-                    <ActivityIndicator color="#ffffff" size="small" />
-                    <Text style={styles.submitButtonText}>Uploading document...</Text>
-                  </View>
-                ) : (
-                  <View style={styles.loadingRow}>
-                    <Ionicons name="cloud-upload" size={20} color="#ffffff" />
-                    <Text style={styles.submitButtonText}>Upload Document</Text>
-                  </View>
-                )}
+                <LinearGradient
+                  colors={isLoading
+                    ? [colors.secondary, colors.secondary]
+                    : [colors.primary, isDark ? '#3d8fd4' : '#1a6db8']
+                  }
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 1 }}
+                  style={styles.submitGradient}
+                >
+                  {isLoading ? (
+                    <View style={styles.loadingRow}>
+                      <ActivityIndicator color="#ffffff" size="small" />
+                      <Text style={styles.submitButtonText}>Uploading document...</Text>
+                    </View>
+                  ) : (
+                    <View style={styles.loadingRow}>
+                      <Ionicons name="cloud-upload" size={20} color="#ffffff" />
+                      <Text style={styles.submitButtonText}>Upload Document</Text>
+                    </View>
+                  )}
+                </LinearGradient>
               </Pressable>
             )}
           </View>
@@ -361,15 +398,14 @@ const styles = StyleSheet.create({
     gap: 24,
   },
   headerInfo: {
-    gap: 4,
+    gap: 6,
   },
   destinationLabel: {
+    ...Typography.overline,
     fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1,
   },
   destinationTitle: {
-    fontSize: 18,
+    ...Typography.title3,
     fontWeight: '700',
   },
   successContainer: {
@@ -385,13 +421,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   successTitle: {
-    fontSize: 20,
+    ...Typography.title3,
     fontWeight: '700',
   },
   successDesc: {
-    fontSize: 14,
+    ...Typography.subheadline,
     textAlign: 'center',
-    lineHeight: 20,
     paddingHorizontal: 16,
   },
   formContainer: {
@@ -400,19 +435,25 @@ const styles = StyleSheet.create({
   dashedBox: {
     borderWidth: 2,
     borderStyle: 'dashed',
-    borderRadius: 20,
+    borderRadius: 24,
     padding: 24,
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
+  },
+  dashedIconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 18,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   dashedTitle: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.headline,
   },
   dashedDesc: {
-    fontSize: 12,
+    ...Typography.footnote,
     textAlign: 'center',
-    lineHeight: 18,
     paddingHorizontal: 12,
     marginBottom: 8,
   },
@@ -421,34 +462,40 @@ const styles = StyleSheet.create({
     gap: 12,
   },
   pickerButton: {
+    flex: 1,
+    height: 48,
+    borderRadius: 14,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(21, 91, 157, 0.15)',
+  },
+  pickerGradient: {
+    flex: 1,
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 8,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 24,
-    borderCurve: 'continuous',
   },
   pickerButtonText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.buttonSmall,
   },
   fileCard: {
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 20,
     borderCurve: 'continuous',
     padding: 16,
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
   },
   fileRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
   fileIconBox: {
     width: 48,
     height: 48,
-    borderRadius: 10,
+    borderRadius: 14,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
@@ -458,40 +505,46 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   fileNameText: {
-    fontSize: 14,
+    ...Typography.subheadline,
     fontWeight: '600',
   },
   fileSizeText: {
-    fontSize: 11,
+    ...Typography.footnote,
     fontWeight: '500',
   },
   removeButton: {
-    padding: 4,
+    padding: 8,
   },
   inputGroup: {
     gap: 8,
   },
   inputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
+    ...Typography.overline,
+    marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     borderCurve: 'continuous',
-    paddingHorizontal: 16,
-    height: 52,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    height: 56,
+    gap: 10,
   },
-  inputIcon: {
-    marginRight: 12,
+  inputIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
     height: '100%',
-    fontSize: 14,
+    ...Typography.callout,
   },
   errorSlot: {
     minHeight: 20,
@@ -499,29 +552,34 @@ const styles = StyleSheet.create({
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     borderCurve: 'continuous',
   },
   errorText: {
     color: '#f43f5e',
-    fontSize: 13,
+    ...Typography.footnote,
     fontWeight: '500',
     flex: 1,
-    lineHeight: 18,
   },
   submitButton: {
-    height: 54,
-    borderRadius: 27,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 4px 16px rgba(21, 91, 157, 0.25)',
+  },
+  submitGradient: {
+    height: 56,
+    borderRadius: 16,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
   },
   submitButtonText: {
     color: '#ffffff',
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.headline,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -529,21 +587,24 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   inputText: {
-    fontSize: 14,
+    ...Typography.callout,
   },
   dropdownContainer: {
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     borderCurve: 'continuous',
-    marginTop: 4,
+    marginTop: 6,
     overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.05)',
   },
   dropdownItem: {
-    padding: 14,
+    padding: 16,
     borderBottomWidth: 1,
+    minHeight: 52,
+    justifyContent: 'center',
   },
   dropdownItemText: {
-    fontSize: 14,
+    ...Typography.callout,
     fontWeight: '500',
   },
   pressed: {

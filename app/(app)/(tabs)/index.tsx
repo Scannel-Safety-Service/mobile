@@ -1,11 +1,13 @@
 import React from 'react';
-import { StyleSheet, View, Text, Pressable, ScrollView } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ScrollView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
 import { HelloWave } from '@/components/hello-wave';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function HomeScreen() {
   const colorScheme = useColorScheme();
@@ -18,148 +20,203 @@ export default function HomeScreen() {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
   };
 
+  const statCards = [
+    {
+      label: 'Assigned Documents',
+      value: '3',
+      icon: 'document-text-outline' as const,
+      iconColor: '#10b981',
+      bgLight: '#ecfdf5',
+      bgDark: '#142a1e',
+      accentColor: '#10b981',
+    },
+    {
+      label: 'Active Reminders',
+      value: '1',
+      icon: 'notifications-outline' as const,
+      iconColor: '#d97706',
+      bgLight: '#fffbeb',
+      bgDark: '#35210e',
+      accentColor: '#f59e0b',
+    },
+    {
+      label: 'Certificates',
+      value: 'Active',
+      icon: 'ribbon-outline' as const,
+      iconColor: '#3b82f6',
+      bgLight: '#eff6ff',
+      bgDark: '#102738',
+      accentColor: '#3b82f6',
+    },
+    {
+      label: 'Assigned Location',
+      value: 'Site-01',
+      icon: 'construct-outline' as const,
+      iconColor: '#8b5cf6',
+      bgLight: '#faf5ff',
+      bgDark: '#23122c',
+      accentColor: '#8b5cf6',
+    },
+  ];
+
   return (
-    <ScrollView 
-      style={[styles.container, { backgroundColor: colors.background }]}
-      contentContainerStyle={styles.contentContainer}
-      showsVerticalScrollIndicator={false}
-    >
-      {/* Welcome Banner */}
-      <View style={styles.welcomeSection}>
-        <View style={styles.welcomeRow}>
-          <Text style={[styles.welcomeText, { color: colors.text }]}>
-            Hello, {user?.firstName || 'Employee'}
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <ScrollView
+        style={styles.container}
+        contentContainerStyle={styles.contentContainer}
+        showsVerticalScrollIndicator={false}
+      >
+        {/* Welcome Header with Gradient */}
+        <View style={styles.welcomeCard}>
+          <LinearGradient
+            colors={isDark
+              ? ['#0a2140', '#0e2d50', '#0a2140']
+              : ['#155B9D', '#1a6db8', '#2B7CC1']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.welcomeGradient}
+          >
+            {/* Decorative circles */}
+            <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
+            <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.04)' }]} />
+
+            <View style={styles.welcomeContent}>
+              <View style={styles.welcomeRow}>
+                <Text style={styles.welcomeText}>
+                  Hello, {user?.firstName || 'Employee'}
+                </Text>
+                <HelloWave />
+              </View>
+              <Text style={styles.companyText}>
+                Scannel Safety Tracker Scoped
+              </Text>
+            </View>
+
+            {/* Safety Status inline */}
+            <View style={styles.statusPill}>
+              <View style={styles.statusDot} />
+              <Text style={styles.statusPillText}>Safety Compliant</Text>
+            </View>
+          </LinearGradient>
+        </View>
+
+        {/* Status Description Card */}
+        <View
+          style={[
+            styles.statusCard,
+            {
+              backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
+              borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
+            },
+          ]}
+        >
+          <View style={[styles.statusAccent, { backgroundColor: '#10b981' }]} />
+          <View style={styles.statusCardContent}>
+            <Text style={[styles.cardTitle, { color: colors.text }]}>Safety Compliance Status</Text>
+            <Text style={[styles.statusDescription, { color: colors.muted }]}>
+              Your account is fully active and synchronized with {"your company's"} safety database.
+            </Text>
+          </View>
+        </View>
+
+        {/* Quick Overview Section */}
+        <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Overview</Text>
+
+        <View style={styles.grid}>
+          {statCards.map((card, index) => (
+            <Pressable
+              key={index}
+              onPress={triggerFeedback}
+              style={({ pressed }) => [
+                styles.gridItem,
+                {
+                  backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
+                  borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
+                  transform: [{ scale: pressed ? 0.97 : 1 }],
+                },
+              ]}
+            >
+              {/* Top accent line */}
+              <View style={[styles.gridAccent, { backgroundColor: card.accentColor }]} />
+              <View style={[styles.iconCircle, { backgroundColor: isDark ? card.bgDark : card.bgLight }]}>
+                <Ionicons name={card.icon} size={24} color={card.iconColor} />
+              </View>
+              <View style={styles.gridItemContent}>
+                <Text style={[styles.statNumber, { color: colors.text }]}>{card.value}</Text>
+                <Text style={[styles.statLabel, { color: colors.muted }]}>{card.label}</Text>
+              </View>
+            </Pressable>
+          ))}
+        </View>
+
+        {/* Safety Notice Footer Banner */}
+        <View
+          style={[
+            styles.noticeBanner,
+            {
+              backgroundColor: isDark ? 'rgba(16,29,45,0.7)' : 'rgba(230,240,250,0.8)',
+              borderColor: isDark ? 'rgba(15,39,64,0.4)' : 'rgba(226,239,250,0.7)',
+            },
+          ]}
+        >
+          <View style={[styles.noticeIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+            <Ionicons name="information-circle" size={20} color={colors.primary} />
+          </View>
+          <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
+            Contact your company administrator if you require updates to your assigned projects or credentials.
           </Text>
-          <HelloWave />
         </View>
-        <Text style={[styles.companyText, { color: colors.muted }]}>
-          Scannel Safety Tracker Scoped
-        </Text>
-      </View>
-
-      {/* Safety Status Card */}
-      <View style={[styles.statusCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-        <View style={styles.cardHeader}>
-          <View style={[styles.statusIndicator, { backgroundColor: '#10b981' }]} />
-          <Text style={[styles.cardTitle, { color: colors.text }]}>Safety Compliance Status</Text>
-        </View>
-        <Text style={[styles.statusDescription, { color: colors.muted }]}>
-          Your account is fully active and synchronized with {"your company's"} safety database.
-        </Text>
-      </View>
-
-      {/* Quick Action Hub */}
-      <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Overview</Text>
-      
-      <View style={styles.grid}>
-        {/* Document Stats Box */}
-        <Pressable 
-          onPress={triggerFeedback}
-          style={({ pressed }) => [
-            styles.gridItem, 
-            { 
-              backgroundColor: colors.card, 
-              borderColor: colors.cardBorder,
-              opacity: pressed ? 0.95 : 1,
-            }
-          ]}
-        >
-          <View style={[styles.iconCircle, { backgroundColor: isDark ? '#142a1e' : '#ecfdf5' }]}>
-            <Ionicons name="document-text-outline" size={24} color="#10b981" />
-          </View>
-          <View style={styles.gridItemContent}>
-            <Text style={[styles.statNumber, { color: colors.text }]}>3</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Assigned Documents</Text>
-          </View>
-        </Pressable>
-
-        {/* Reminder Stats Box */}
-        <Pressable 
-          onPress={triggerFeedback}
-          style={({ pressed }) => [
-            styles.gridItem, 
-            { 
-              backgroundColor: colors.card, 
-              borderColor: colors.cardBorder,
-              opacity: pressed ? 0.95 : 1,
-            }
-          ]}
-        >
-          <View style={[styles.iconCircle, { backgroundColor: isDark ? '#35210e' : '#fffbeb' }]}>
-            <Ionicons name="notifications-outline" size={24} color="#d97706" />
-          </View>
-          <View style={styles.gridItemContent}>
-            <Text style={[styles.statNumber, { color: colors.text }]}>1</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Active Reminders</Text>
-          </View>
-        </Pressable>
-
-        {/* Training Qualifications Box */}
-        <Pressable 
-          onPress={triggerFeedback}
-          style={({ pressed }) => [
-            styles.gridItem, 
-            { 
-              backgroundColor: colors.card, 
-              borderColor: colors.cardBorder,
-              opacity: pressed ? 0.95 : 1,
-            }
-          ]}
-        >
-          <View style={[styles.iconCircle, { backgroundColor: isDark ? '#102738' : '#eff6ff' }]}>
-            <Ionicons name="ribbon-outline" size={24} color="#3b82f6" />
-          </View>
-          <View style={styles.gridItemContent}>
-            <Text style={[styles.statNumber, { color: colors.text }]}>Active</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Certificates</Text>
-          </View>
-        </Pressable>
-
-        {/* Assigned Projects Box */}
-        <Pressable 
-          onPress={triggerFeedback}
-          style={({ pressed }) => [
-            styles.gridItem, 
-            { 
-              backgroundColor: colors.card, 
-              borderColor: colors.cardBorder,
-              opacity: pressed ? 0.95 : 1,
-            }
-          ]}
-        >
-          <View style={[styles.iconCircle, { backgroundColor: isDark ? '#23122c' : '#faf5ff' }]}>
-            <Ionicons name="construct-outline" size={24} color="#8b5cf6" />
-          </View>
-          <View style={styles.gridItemContent}>
-            <Text style={[styles.statNumber, { color: colors.text }]}>Site-01</Text>
-            <Text style={[styles.statLabel, { color: colors.muted }]}>Assigned Location</Text>
-          </View>
-        </Pressable>
-      </View>
-
-      {/* Safety Notice Footer Banner */}
-      <View style={[styles.noticeBanner, { backgroundColor: isDark ? '#101d2d' : '#e6f0fa', borderColor: colors.cardBorder }]}>
-        <Ionicons name="information-circle" size={22} color={colors.primary} />
-        <Text style={[styles.noticeText, { color: colors.text }]}>
-          Contact your company administrator if you require updates to your assigned projects or credentials.
-        </Text>
-      </View>
-    </ScrollView>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
   },
   contentContainer: {
-    paddingTop: 64,
-    paddingHorizontal: 24,
+    paddingTop: 12,
+    paddingHorizontal: 20,
     paddingBottom: 40,
-    gap: 24,
+    gap: 20,
   },
-  welcomeSection: {
-    gap: 6,
+
+  /* ── Welcome Card ── */
+  welcomeCard: {
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 8px 24px rgba(21, 91, 157, 0.15)',
+  },
+  welcomeGradient: {
+    padding: 24,
+    paddingBottom: 20,
+    gap: 16,
+    overflow: 'hidden',
+  },
+  decorCircle1: {
+    position: 'absolute',
+    top: -40,
+    right: -30,
+    width: 140,
+    height: 140,
+    borderRadius: 70,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    bottom: -50,
+    left: -20,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  welcomeContent: {
+    gap: 4,
   },
   welcomeRow: {
     flexDirection: 'row',
@@ -167,63 +224,95 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   welcomeText: {
-    fontSize: 24,
-    fontWeight: '700',
-    letterSpacing: -0.5,
+    ...Typography.title1,
+    color: '#ffffff',
   },
   companyText: {
-    fontSize: 14,
+    ...Typography.subheadline,
+    color: 'rgba(255,255,255,0.7)',
     fontWeight: '500',
   },
-  statusCard: {
-    borderWidth: 1,
-    borderRadius: 18,
-    borderCurve: 'continuous',
-    padding: 20,
-    gap: 10,
-    boxShadow: '0 4px 12px rgba(21, 91, 157, 0.04)',
-  },
-  cardHeader: {
+  statusPill: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    alignSelf: 'flex-start',
+    gap: 8,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 20,
+    backgroundColor: 'rgba(16, 185, 129, 0.15)',
   },
-  statusIndicator: {
+  statusDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    backgroundColor: '#34d399',
+  },
+  statusPillText: {
+    ...Typography.footnote,
+    fontWeight: '600',
+    color: '#34d399',
+  },
+
+  /* ── Status Card ── */
+  statusCard: {
+    flexDirection: 'row',
+    borderWidth: 1,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
+  },
+  statusAccent: {
+    width: 4,
+  },
+  statusCardContent: {
+    flex: 1,
+    padding: 18,
+    gap: 8,
   },
   cardTitle: {
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.headline,
   },
   statusDescription: {
-    fontSize: 13,
-    lineHeight: 18,
+    ...Typography.subheadline,
   },
+
+  /* ── Section ── */
   sectionTitle: {
-    fontSize: 18,
-    fontWeight: '700',
-    marginTop: 8,
+    ...Typography.title3,
+    marginTop: 4,
   },
+
+  /* ── Stats Grid ── */
   grid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: 16,
+    gap: 14,
   },
   gridItem: {
-    width: '47.5%',
+    width: '47%',
     borderWidth: 1,
-    borderRadius: 16,
+    borderRadius: 20,
     borderCurve: 'continuous',
-    padding: 16,
-    gap: 12,
-    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.01)',
+    padding: 18,
+    gap: 14,
+    overflow: 'hidden',
+    boxShadow: '0 2px 8px rgba(0, 0, 0, 0.03)',
+  },
+  gridAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
   },
   iconCircle: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
+    width: 48,
+    height: 48,
+    borderRadius: 14,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
@@ -232,26 +321,35 @@ const styles = StyleSheet.create({
     gap: 4,
   },
   statNumber: {
-    fontSize: 18,
+    ...Typography.title3,
     fontWeight: '700',
   },
   statLabel: {
-    fontSize: 11,
+    ...Typography.footnote,
     fontWeight: '500',
   },
+
+  /* ── Notice Banner ── */
   noticeBanner: {
     flexDirection: 'row',
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     borderCurve: 'continuous',
-    padding: 14,
-    gap: 12,
+    padding: 16,
+    gap: 14,
     alignItems: 'flex-start',
+  },
+  noticeIconCircle: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginTop: -2,
   },
   noticeText: {
     flex: 1,
-    fontSize: 12,
-    lineHeight: 16,
+    ...Typography.footnote,
     fontWeight: '500',
   },
 });

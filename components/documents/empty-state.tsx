@@ -2,7 +2,7 @@ import React, { memo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 
 interface EmptyStateProps {
   title?: string;
@@ -17,11 +17,20 @@ export const EmptyState = memo(function EmptyState({
 }: EmptyStateProps) {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
+  const isDark = colorScheme === 'dark';
 
   return (
-    <View style={styles.container}>
-      <View style={[styles.iconWrapper, { borderColor: colors.cardBorder }]}>
-        <Ionicons name={iconName as any} size={40} color={colors.muted} />
+    <View
+      style={[
+        styles.container,
+        {
+          backgroundColor: isDark ? 'rgba(8, 23, 41, 0.4)' : 'rgba(255, 255, 255, 0.5)',
+          borderColor: isDark ? 'rgba(15, 39, 64, 0.4)' : 'rgba(226, 239, 250, 0.7)',
+        },
+      ]}
+    >
+      <View style={[styles.iconWrapper, { backgroundColor: isDark ? 'rgba(86, 185, 255, 0.08)' : 'rgba(21, 91, 157, 0.05)' }]}>
+        <Ionicons name={iconName as any} size={36} color={colors.primary} />
       </View>
       <Text style={[styles.title, { color: colors.text }]}>{title}</Text>
       <Text style={[styles.description, { color: colors.muted }]}>{description}</Text>
@@ -31,31 +40,34 @@ export const EmptyState = memo(function EmptyState({
 
 const styles = StyleSheet.create({
   container: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 64,
-    paddingHorizontal: 32,
-    gap: 12,
-  },
-  iconWrapper: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
+    marginVertical: 20,
+    marginHorizontal: 4,
+    paddingVertical: 44,
+    paddingHorizontal: 24,
+    borderRadius: 24,
     borderWidth: 1,
     borderStyle: 'dashed',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
+    gap: 12,
+  },
+  iconWrapper: {
+    width: 72,
+    height: 72,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
   },
   title: {
-    fontSize: 16,
-    fontWeight: '700',
+    ...Typography.headline,
     textAlign: 'center',
+    fontWeight: '700',
   },
   description: {
-    fontSize: 13,
+    ...Typography.subheadline,
     textAlign: 'center',
-    lineHeight: 18,
+    lineHeight: 20,
   },
 });

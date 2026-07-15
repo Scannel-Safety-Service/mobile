@@ -14,8 +14,9 @@ import { Image } from 'expo-image';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useRouter } from 'expo-router';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function LoginScreen() {
   const router = useRouter();
@@ -74,163 +75,241 @@ export default function LoginScreen() {
   const isLoading = isSubmitting || status === 'loading';
 
   return (
-    <KeyboardAvoidingView
-      behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-      style={[styles.container, { backgroundColor: colors.background }]}
-    >
-      <View style={styles.cardContainer}>
-        {/* Logo / Header */}
-        <View style={styles.headerArea}>
-          <Image
-            source={require('@/assets/images/logo-home.png')}
-            style={styles.logoImage}
-            contentFit="contain"
-          />
-          <Text style={[styles.subtitle, { color: colors.muted }]}>
-            Employee Safety & Document Service
-          </Text>
-        </View>
+    <View style={styles.outerContainer}>
+      {/* Gradient Background */}
+      <LinearGradient
+        colors={isDark
+          ? ['#040e1a', '#0a1f38', '#0e2a4a', '#040e1a']
+          : ['#e8f1fb', '#d4e6f6', '#c0dbf1', '#f4f8fc']
+        }
+        locations={[0, 0.3, 0.7, 1]}
+        style={StyleSheet.absoluteFill}
+      />
 
-        {/* Form */}
-        <View style={styles.formArea}>
-          {/* Email */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.muted }]}>EMAIL ADDRESS</Text>
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: isDark ? '#0b1624' : '#ffffff',
-                  borderColor: displayError ? '#f43f5e' : colors.cardBorder,
-                },
-              ]}
-            >
-              <Ionicons name="mail-outline" size={20} color={colors.icon} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Enter email address"
-                placeholderTextColor={colors.muted}
-                value={email}
-                onChangeText={(text) => {
-                  setEmail(text);
-                  if (localError) setLocalError(null);
-                  if (loginError) clearError();
-                }}
-                autoCapitalize="none"
-                keyboardType="email-address"
-                autoComplete="email"
-                editable={!isLoading}
-              />
-            </View>
+      {/* Decorative Gradient Orb — Top Right */}
+      <View style={styles.orbTopRight}>
+        <LinearGradient
+          colors={isDark
+            ? ['rgba(86,185,255,0.12)', 'rgba(45,167,255,0.0)']
+            : ['rgba(21,91,157,0.08)', 'rgba(21,91,157,0.0)']
+          }
+          style={styles.orbGradient}
+        />
+      </View>
+
+      {/* Decorative Gradient Orb — Bottom Left */}
+      <View style={styles.orbBottomLeft}>
+        <LinearGradient
+          colors={isDark
+            ? ['rgba(45,167,255,0.08)', 'rgba(45,167,255,0.0)']
+            : ['rgba(21,91,157,0.06)', 'rgba(21,91,157,0.0)']
+          }
+          style={styles.orbGradient}
+        />
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        style={styles.keyboardView}
+      >
+        <View style={styles.content}>
+          {/* Logo / Header */}
+          <View style={styles.headerArea}>
+            <Image
+              source={require('@/assets/images/logo-home.png')}
+              style={styles.logoImage}
+              contentFit="contain"
+            />
+            <Text style={[styles.subtitle, { color: colors.muted }]}>
+              Employee Safety & Document Service
+            </Text>
           </View>
 
-          {/* Password */}
-          <View style={styles.inputGroup}>
-            <Text style={[styles.inputLabel, { color: colors.muted }]}>PASSWORD</Text>
-            <View
-              style={[
-                styles.inputWrapper,
-                {
-                  backgroundColor: isDark ? '#0b1624' : '#ffffff',
-                  borderColor: displayError ? '#f43f5e' : colors.cardBorder,
-                },
-              ]}
-            >
-              <Ionicons name="lock-closed-outline" size={20} color={colors.icon} style={styles.inputIcon} />
-              <TextInput
-                style={[styles.input, { color: colors.text }]}
-                placeholder="Enter password"
-                placeholderTextColor={colors.muted}
-                value={password}
-                onChangeText={(text) => {
-                  setPassword(text);
-                  if (localError) setLocalError(null);
-                  if (loginError) clearError();
-                }}
-                secureTextEntry={!showPassword}
-                autoCapitalize="none"
-                autoComplete="password"
-                editable={!isLoading}
-                onSubmitEditing={handleLogin}
-                returnKeyType="done"
-              />
+          {/* Glass Card Form */}
+          <View
+            style={[
+              styles.formCard,
+              {
+                backgroundColor: isDark ? 'rgba(8,23,41,0.75)' : 'rgba(255,255,255,0.82)',
+                borderColor: isDark ? 'rgba(15,39,64,0.6)' : 'rgba(226,239,250,0.8)',
+              },
+            ]}
+          >
+            {/* Email */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>EMAIL ADDRESS</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
+                    borderColor: displayError ? '#f43f5e' : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                  },
+                ]}
+              >
+                <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+                  <Ionicons name="mail-outline" size={18} color={colors.primary} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Enter email address"
+                  placeholderTextColor={colors.muted}
+                  value={email}
+                  onChangeText={(text) => {
+                    setEmail(text);
+                    if (localError) setLocalError(null);
+                    if (loginError) clearError();
+                  }}
+                  autoCapitalize="none"
+                  keyboardType="email-address"
+                  autoComplete="email"
+                  editable={!isLoading}
+                />
+              </View>
+            </View>
+
+            {/* Password */}
+            <View style={styles.inputGroup}>
+              <Text style={[styles.inputLabel, { color: colors.muted }]}>PASSWORD</Text>
+              <View
+                style={[
+                  styles.inputWrapper,
+                  {
+                    backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
+                    borderColor: displayError ? '#f43f5e' : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                  },
+                ]}
+              >
+                <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+                  <Ionicons name="lock-closed-outline" size={18} color={colors.primary} />
+                </View>
+                <TextInput
+                  style={[styles.input, { color: colors.text }]}
+                  placeholder="Enter password"
+                  placeholderTextColor={colors.muted}
+                  value={password}
+                  onChangeText={(text) => {
+                    setPassword(text);
+                    if (localError) setLocalError(null);
+                    if (loginError) clearError();
+                  }}
+                  secureTextEntry={!showPassword}
+                  autoCapitalize="none"
+                  autoComplete="password"
+                  editable={!isLoading}
+                  onSubmitEditing={handleLogin}
+                  returnKeyType="done"
+                />
+                <Pressable
+                  onPress={() => setShowPassword(!showPassword)}
+                  style={styles.eyeButton}
+                  hitSlop={8}
+                >
+                  <Ionicons
+                    name={showPassword ? 'eye-off-outline' : 'eye-outline'}
+                    size={20}
+                    color={colors.icon}
+                  />
+                </Pressable>
+              </View>
+
               <Pressable
-                onPress={() => setShowPassword(!showPassword)}
-                style={styles.eyeButton}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  router.push('/(auth)/forgot-password');
+                }}
+                style={({ pressed }) => [
+                  styles.forgotPasswordButton,
+                  { opacity: pressed ? 0.6 : 1 }
+                ]}
                 hitSlop={8}
               >
-                <Ionicons
-                  name={showPassword ? 'eye-off-outline' : 'eye-outline'}
-                  size={20}
-                  color={colors.icon}
-                />
+                <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
+                  Forgot Password?
+                </Text>
               </Pressable>
             </View>
-            
-            <Pressable
-              onPress={() => {
-                Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                router.push('/(auth)/forgot-password');
-              }}
-              style={({ pressed }) => [
-                styles.forgotPasswordButton,
-                { opacity: pressed ? 0.6 : 1 }
-              ]}
-              hitSlop={8}
-            >
-              <Text style={[styles.forgotPasswordText, { color: colors.primary }]}>
-                Forgot Password?
-              </Text>
-            </Pressable>
-          </View>
 
-          {/* Error Message — always in layout, animates in */}
-          <View style={styles.errorSlot}>
+            {/* Error Message */}
             {displayError ? (
-              <View style={[styles.errorContainer, { backgroundColor: isDark ? '#3a0f14' : '#fdf2f2' }]}>
+              <View style={[styles.errorContainer, { backgroundColor: isDark ? 'rgba(58,15,20,0.6)' : 'rgba(253,242,242,0.9)' }]}>
                 <Ionicons name="alert-circle" size={18} color="#f43f5e" />
                 <Text style={styles.errorText}>{displayError}</Text>
               </View>
             ) : null}
+
+            {/* Submit Button */}
+            <Pressable
+              onPress={isLoading ? undefined : handleLogin}
+              style={({ pressed }) => [
+                styles.submitButton,
+                {
+                  opacity: pressed ? 0.9 : 1,
+                  transform: [{ scale: pressed ? 0.985 : 1 }],
+                },
+              ]}
+            >
+              <LinearGradient
+                colors={isLoading
+                  ? [colors.secondary, colors.secondary]
+                  : [colors.primary, isDark ? '#3d8fd4' : '#1a6db8']
+                }
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.submitGradient}
+              >
+                {isLoading ? (
+                  <View style={styles.loadingRow}>
+                    <ActivityIndicator color="#ffffff" size="small" />
+                    <Text style={styles.submitButtonText}>Signing in...</Text>
+                  </View>
+                ) : (
+                  <Text style={styles.submitButtonText}>Log In</Text>
+                )}
+              </LinearGradient>
+            </Pressable>
           </View>
 
-          {/* Submit Button */}
-          <Pressable
-            onPress={isLoading ? undefined : handleLogin}
-            style={({ pressed }) => [
-              styles.submitButton,
-              {
-                backgroundColor: isLoading ? colors.secondary : colors.primary,
-                opacity: pressed ? 0.88 : 1,
-              },
-            ]}
-          >
-            {isLoading ? (
-              <View style={styles.loadingRow}>
-                <ActivityIndicator color="#ffffff" size="small" />
-                <Text style={styles.submitButtonText}>Signing in...</Text>
-              </View>
-            ) : (
-              <Text style={styles.submitButtonText}>Log In</Text>
-            )}
-          </Pressable>
+          <Text style={[styles.footerText, { color: colors.muted }]}>
+            Your credentials are provided by your company administrator.
+          </Text>
         </View>
-
-        <Text style={[styles.footerText, { color: colors.muted }]}>
-          Your credentials are provided by your company administrator.
-        </Text>
-      </View>
-    </KeyboardAvoidingView>
+      </KeyboardAvoidingView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
+  outerContainer: {
+    flex: 1,
+  },
+  orbTopRight: {
+    position: 'absolute',
+    top: -100,
+    right: -100,
+    width: 320,
+    height: 320,
+    borderRadius: 160,
+    overflow: 'hidden',
+  },
+  orbBottomLeft: {
+    position: 'absolute',
+    bottom: -80,
+    left: -80,
+    width: 280,
+    height: 280,
+    borderRadius: 140,
+    overflow: 'hidden',
+  },
+  orbGradient: {
+    flex: 1,
+  },
+  keyboardView: {
     flex: 1,
     justifyContent: 'center',
-    paddingHorizontal: 24,
   },
-  cardContainer: {
+  content: {
+    paddingHorizontal: 24,
     gap: 32,
   },
   headerArea: {
@@ -240,60 +319,70 @@ const styles = StyleSheet.create({
   logoImage: {
     width: 220,
     height: 70,
-    marginBottom: 8,
+    marginBottom: 4,
   },
   subtitle: {
-    fontSize: 14,
+    ...Typography.subheadline,
     textAlign: 'center',
   },
-  formArea: {
-    gap: 16,
+  formCard: {
+    borderWidth: 1,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    padding: 24,
+    gap: 20,
+    // Frosted glass shadow
+    boxShadow: '0 8px 32px rgba(0, 0, 0, 0.06)',
   },
   inputGroup: {
     gap: 8,
   },
   inputLabel: {
-    fontSize: 11,
-    fontWeight: '600',
-    letterSpacing: 0.8,
+    ...Typography.overline,
+    marginLeft: 4,
   },
   inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: 14,
+    borderRadius: 16,
     borderCurve: 'continuous',
-    paddingHorizontal: 16,
-    height: 52,
+    paddingHorizontal: 6,
+    paddingVertical: 6,
+    height: 56,
+    gap: 10,
   },
-  inputIcon: {
-    marginRight: 12,
+  inputIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   input: {
     flex: 1,
     height: '100%',
-    fontSize: 15,
+    ...Typography.callout,
   },
   eyeButton: {
-    padding: 4,
-  },
-  errorSlot: {
-    minHeight: 44, // Reserve space to avoid layout jump when error appears
+    padding: 10,
+    marginRight: 2,
   },
   errorContainer: {
     flexDirection: 'row',
     alignItems: 'flex-start',
-    gap: 8,
-    padding: 12,
-    borderRadius: 10,
+    gap: 10,
+    paddingVertical: 12,
+    paddingHorizontal: 14,
+    borderRadius: 14,
     borderCurve: 'continuous',
   },
   errorText: {
     color: '#f43f5e',
-    fontSize: 13,
+    ...Typography.footnote,
     fontWeight: '500',
     flex: 1,
-    lineHeight: 18,
   },
   loadingRow: {
     flexDirection: 'row',
@@ -301,30 +390,35 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   submitButton: {
-    height: 54,
-    borderRadius: 27,
+    marginTop: 4,
+    borderRadius: 16,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    // Glow shadow
+    boxShadow: '0 4px 16px rgba(21, 91, 157, 0.25)',
+  },
+  submitGradient: {
+    height: 56,
+    borderRadius: 16,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
   },
   submitButtonText: {
     color: '#ffffff',
-    fontSize: 16,
-    fontWeight: '600',
-    letterSpacing: -0.2,
+    ...Typography.headline,
   },
   forgotPasswordButton: {
     alignSelf: 'flex-end',
     marginTop: 4,
+    paddingVertical: 4,
   },
   forgotPasswordText: {
-    fontSize: 13,
-    fontWeight: '600',
+    ...Typography.buttonSmall,
   },
   footerText: {
-    fontSize: 12,
+    ...Typography.footnote,
     textAlign: 'center',
-    lineHeight: 18,
     paddingHorizontal: 16,
   },
 });

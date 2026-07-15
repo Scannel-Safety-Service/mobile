@@ -1,10 +1,12 @@
 import React from 'react';
-import { StyleSheet, View, Text, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, Pressable, ActivityIndicator, ScrollView } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
-import { Colors } from '@/constants/theme';
+import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
+import { LinearGradient } from 'expo-linear-gradient';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
@@ -19,170 +21,254 @@ export default function ProfileScreen() {
 
   const isDark = colorScheme === 'dark';
 
+  const detailItems = [
+    { icon: 'briefcase-outline' as const, label: 'Access Role', value: user?.role === 'COMPANY_USER' ? 'Company Employee' : user?.role || '' },
+    { icon: 'business-outline' as const, label: 'Company ID', value: user?.companyId || 'N/A' },
+    { icon: 'key-outline' as const, label: 'Security Channel', value: 'Mobile (Isolated JWT)' },
+    { icon: 'information-circle-outline' as const, label: 'Client Version', value: '1.0.0 (Expo)' },
+  ];
+
   return (
-    <View style={[styles.container, { backgroundColor: colors.background }]}>
-      {/* Header Profile Area */}
-      <View style={[styles.profileHeader, { borderBottomColor: colors.cardBorder }]}>
-        <View style={[styles.avatar, { backgroundColor: colors.primary }]}>
-          <Text style={styles.avatarText}>
-            {user?.firstName?.charAt(0) || 'E'}
-          </Text>
-        </View>
-        <Text style={[styles.userName, { color: colors.text }]}>
-          {user ? `${user.firstName} ${user.lastName}`.trim() : 'Loading Employee...'}
-        </Text>
-        <Text style={[styles.userEmail, { color: colors.muted }]}>
-          {user?.email || ''}
-        </Text>
-      </View>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]}>
+      <ScrollView style={styles.container} contentContainerStyle={styles.contentContainer} showsVerticalScrollIndicator={false}>
 
-      {/* Profile Details List */}
-      <View style={styles.detailsList}>
-        {/* Role Group */}
-        <View style={[styles.detailItem, { borderBottomColor: colors.cardBorder }]}>
-          <View style={styles.detailLeft}>
-            <Ionicons name="briefcase-outline" size={22} color={colors.icon} />
-            <Text style={[styles.detailLabel, { color: colors.text }]}>Access Role</Text>
+        {/* Profile Hero Header */}
+        <View style={styles.heroCard}>
+          <LinearGradient
+            colors={isDark
+              ? ['#0a2140', '#0e2d50', '#0a2140']
+              : ['#155B9D', '#1a6db8', '#2B7CC1']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 1 }}
+            style={styles.heroGradient}
+          >
+            {/* Decorative circles */}
+            <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
+            <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.03)' }]} />
+
+            {/* Avatar */}
+            <View style={styles.avatarRing}>
+              <View style={styles.avatar}>
+                <Text style={styles.avatarText}>
+                  {user?.firstName?.charAt(0) || 'E'}
+                </Text>
+              </View>
+            </View>
+
+            <Text style={styles.userName}>
+              {user ? `${user.firstName} ${user.lastName}`.trim() : 'Loading Employee...'}
+            </Text>
+            <Text style={styles.userEmail}>
+              {user?.email || ''}
+            </Text>
+          </LinearGradient>
+        </View>
+
+        {/* Details Section */}
+        <View style={styles.detailsSection}>
+          <Text style={[styles.detailsSectionTitle, { color: colors.muted }]}>ACCOUNT DETAILS</Text>
+
+          <View
+            style={[
+              styles.detailsCard,
+              {
+                backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
+                borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
+              },
+            ]}
+          >
+            {detailItems.map((item, index) => (
+              <View
+                key={index}
+                style={[
+                  styles.detailItem,
+                  index < detailItems.length - 1 && {
+                    borderBottomWidth: 1,
+                    borderBottomColor: isDark ? 'rgba(15,39,64,0.4)' : 'rgba(226,239,250,0.8)',
+                  },
+                ]}
+              >
+                <View style={styles.detailLeft}>
+                  <View style={[styles.detailIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.08)' : 'rgba(21,91,157,0.05)' }]}>
+                    <Ionicons name={item.icon} size={20} color={colors.primary} />
+                  </View>
+                  <Text style={[styles.detailLabel, { color: colors.text }]}>{item.label}</Text>
+                </View>
+                <Text style={[styles.detailValue, { color: colors.muted }]} numberOfLines={1}>
+                  {item.value}
+                </Text>
+              </View>
+            ))}
           </View>
-          <Text style={[styles.detailValue, { color: colors.muted }]}>
-            {user?.role === 'COMPANY_USER' ? 'Company Employee' : user?.role || ''}
-          </Text>
         </View>
 
-        {/* Company Group */}
-        <View style={[styles.detailItem, { borderBottomColor: colors.cardBorder }]}>
-          <View style={styles.detailLeft}>
-            <Ionicons name="business-outline" size={22} color={colors.icon} />
-            <Text style={[styles.detailLabel, { color: colors.text }]}>Company ID</Text>
-          </View>
-          <Text style={[styles.detailValue, { color: colors.muted }]} numberOfLines={1}>
-            {user?.companyId || 'N/A'}
-          </Text>
+        {/* Logout Action */}
+        <View style={styles.actionContainer}>
+          <Pressable
+            onPress={status === 'loading' ? undefined : handleLogout}
+            style={({ pressed }) => [
+              styles.logoutButton,
+              {
+                backgroundColor: isDark ? 'rgba(58,15,20,0.5)' : 'rgba(253,242,242,0.9)',
+                borderColor: isDark ? 'rgba(244,63,94,0.2)' : 'rgba(244,63,94,0.15)',
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              },
+            ]}
+          >
+            {status === 'loading' ? (
+              <ActivityIndicator color="#f43f5e" size="small" />
+            ) : (
+              <>
+                <Ionicons name="log-out-outline" size={20} color="#f43f5e" />
+                <Text style={styles.logoutText}>Log Out from Device</Text>
+              </>
+            )}
+          </Pressable>
         </View>
-
-        {/* Security / Connection status */}
-        <View style={[styles.detailItem, { borderBottomColor: colors.cardBorder }]}>
-          <View style={styles.detailLeft}>
-            <Ionicons name="key-outline" size={22} color={colors.icon} />
-            <Text style={[styles.detailLabel, { color: colors.text }]}>Security Channel</Text>
-          </View>
-          <Text style={[styles.detailValue, { color: colors.muted }]}>
-            Mobile (Isolated JWT)
-          </Text>
-        </View>
-
-        {/* App Version */}
-        <View style={[styles.detailItem, { borderBottomColor: colors.cardBorder }]}>
-          <View style={styles.detailLeft}>
-            <Ionicons name="information-circle-outline" size={22} color={colors.icon} />
-            <Text style={[styles.detailLabel, { color: colors.text }]}>Client Version</Text>
-          </View>
-          <Text style={[styles.detailValue, { color: colors.muted }]}>
-            1.0.0 (Expo)
-          </Text>
-        </View>
-      </View>
-
-      {/* Logout Action */}
-      <View style={styles.actionContainer}>
-        <Pressable
-          onPress={status === 'loading' ? undefined : handleLogout}
-          style={({ pressed }) => [
-            styles.logoutButton,
-            {
-              backgroundColor: isDark ? '#3a0f14' : '#fdf2f2',
-              opacity: pressed ? 0.85 : 1,
-            },
-          ]}
-        >
-          {status === 'loading' ? (
-            <ActivityIndicator color="#f43f5e" size="small" />
-          ) : (
-            <>
-              <Ionicons name="log-out-outline" size={20} color="#f43f5e" />
-              <Text style={styles.logoutText}>Log Out from Device</Text>
-            </>
-          )}
-        </Pressable>
-      </View>
-    </View>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safeArea: {
+    flex: 1,
+  },
   container: {
     flex: 1,
-    paddingTop: 64,
   },
-  profileHeader: {
+  contentContainer: {
+    paddingTop: 12,
+    paddingBottom: 40,
+    gap: 24,
+  },
+
+  /* ── Hero Header ── */
+  heroCard: {
+    marginHorizontal: 20,
+    borderRadius: 24,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 8px 24px rgba(21, 91, 157, 0.15)',
+  },
+  heroGradient: {
     alignItems: 'center',
-    paddingBottom: 28,
-    borderBottomWidth: 1,
-    gap: 8,
+    paddingVertical: 32,
+    paddingHorizontal: 24,
+    gap: 10,
+    overflow: 'hidden',
   },
-  avatar: {
-    width: 90,
-    height: 90,
-    borderRadius: 45,
+  decorCircle1: {
+    position: 'absolute',
+    top: -50,
+    right: -40,
+    width: 160,
+    height: 160,
+    borderRadius: 80,
+  },
+  decorCircle2: {
+    position: 'absolute',
+    bottom: -30,
+    left: -30,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
+  },
+  avatarRing: {
+    width: 104,
+    height: 104,
+    borderRadius: 52,
+    borderWidth: 3,
+    borderColor: 'rgba(255,255,255,0.25)',
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: 8,
-    boxShadow: '0 8px 16px rgba(21, 91, 157, 0.12)',
+    marginBottom: 4,
+  },
+  avatar: {
+    width: 92,
+    height: 92,
+    borderRadius: 46,
+    backgroundColor: 'rgba(255,255,255,0.2)',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   avatarText: {
     color: '#ffffff',
-    fontSize: 36,
+    fontSize: 38,
     fontWeight: '600',
   },
   userName: {
-    fontSize: 20,
-    fontWeight: '700',
+    ...Typography.title2,
+    color: '#ffffff',
   },
   userEmail: {
-    fontSize: 14,
-    fontWeight: '400',
+    ...Typography.subheadline,
+    color: 'rgba(255,255,255,0.65)',
   },
-  detailsList: {
-    marginTop: 20,
-    paddingHorizontal: 24,
+
+  /* ── Details Section ── */
+  detailsSection: {
+    paddingHorizontal: 20,
+    gap: 12,
+  },
+  detailsSectionTitle: {
+    ...Typography.overline,
+    marginLeft: 4,
+  },
+  detailsCard: {
+    borderWidth: 1,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    overflow: 'hidden',
+    boxShadow: '0 4px 12px rgba(0, 0, 0, 0.04)',
   },
   detailItem: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 18,
-    borderBottomWidth: 1,
+    paddingVertical: 16,
+    paddingHorizontal: 18,
   },
   detailLeft: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 12,
+    gap: 14,
   },
-  detailLabel: {
-    fontSize: 15,
-    fontWeight: '500',
-  },
-  detailValue: {
-    fontSize: 14,
-    fontWeight: '400',
-    maxWidth: '50%',
-  },
-  actionContainer: {
-    marginTop: 40,
-    paddingHorizontal: 24,
-  },
-  logoutButton: {
-    flexDirection: 'row',
-    height: 52,
-    borderRadius: 14,
+  detailIconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: 8,
+  },
+  detailLabel: {
+    ...Typography.callout,
+    fontWeight: '500',
+  },
+  detailValue: {
+    ...Typography.subheadline,
+    maxWidth: '40%',
+    textAlign: 'right',
+  },
+
+  /* ── Logout ── */
+  actionContainer: {
+    paddingHorizontal: 20,
+  },
+  logoutButton: {
+    flexDirection: 'row',
+    height: 56,
+    borderRadius: 16,
+    borderWidth: 1,
+    borderCurve: 'continuous',
+    justifyContent: 'center',
+    alignItems: 'center',
+    gap: 10,
   },
   logoutText: {
     color: '#f43f5e',
-    fontSize: 15,
-    fontWeight: '600',
+    ...Typography.button,
   },
 });
