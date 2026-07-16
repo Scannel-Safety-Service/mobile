@@ -11,6 +11,8 @@ import { DocumentRow } from '@/components/documents/document-row';
 import { EmptyState } from '@/components/documents/empty-state';
 import { useViewDocument } from '@/hooks/use-view-document';
 import { BackgroundLogo } from '@/components/background-logo';
+import { useShareDocuments } from '@/hooks/use-share-documents';
+import { ShareProgressOverlay } from '@/components/documents/share-progress-overlay';
 
 export default function SubfolderScreen() {
   const { categoryId, categoryName, section, isIndividual } = useLocalSearchParams<{
@@ -27,6 +29,12 @@ export default function SubfolderScreen() {
 
   const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
 
+  const {
+    progressState,
+    shareFolderDocuments,
+    resetProgress,
+  } = useShareDocuments();
+
   const sectionEnum = section as DocumentSection;
   const isInd = isIndividual === 'true';
 
@@ -37,6 +45,12 @@ export default function SubfolderScreen() {
   const filteredDocuments = isInd
     ? documents.filter((doc) => doc.title && doc.title.endsWith(` - ${categoryName}`))
     : documents;
+
+  const handleShareFolder = useCallback(() => {
+    if (!filteredDocuments || filteredDocuments.length === 0) return;
+    shareFolderDocuments(filteredDocuments, categoryName || 'Folder');
+  }, [filteredDocuments, categoryName, shareFolderDocuments]);
+
 
   // Auto-refresh when entering
   useEffect(() => {
@@ -78,7 +92,25 @@ export default function SubfolderScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <BackgroundLogo />
-      <Stack.Screen options={{ title: categoryName || 'Subfolder' }} />
+      <Stack.Screen
+        options={{
+          title: categoryName || 'Subfolder',
+          headerRight: () => {
+            if (!filteredDocuments || filteredDocuments.length === 0) return null;
+            return (
+              <Pressable
+                onPress={handleShareFolder}
+                style={({ pressed }) => [
+                  styles.headerShareButton,
+                  { opacity: pressed ? 0.6 : 1 }
+                ]}
+              >
+                <Ionicons name="share-social-outline" size={22} color={colors.primary} />
+              </Pressable>
+            );
+          }
+        }}
+      />
 
       {isLoading ? (
         <View style={styles.centerContainer}>
@@ -140,6 +172,8 @@ export default function SubfolderScreen() {
           </View>
         </View>
       )}
+
+      <ShareProgressOverlay progressState={progressState} onClose={resetProgress} />
     </View>
   );
 }
@@ -212,5 +246,9 @@ const styles = StyleSheet.create({
   },
   downloadProgressText: {
     ...Typography.footnote,
+  },
+  headerShareButton: {
+    marginRight: 4,
+    padding: 8,
   },
 });

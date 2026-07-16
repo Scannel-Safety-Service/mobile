@@ -28,7 +28,7 @@ export const DocumentRow = memo(function DocumentRow({
   onPress,
 }: DocumentRowProps) {
   const colorScheme = useColorScheme();
-  const colors = Colors[colorScheme ?? 'light'];
+  const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
 
   const handlePress = () => {
@@ -124,5 +124,17 @@ const styles = StyleSheet.create({
     borderRadius: 10,
     justifyContent: 'center',
     alignItems: 'center',
+  },
+  shareBadge: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
   },
 });
