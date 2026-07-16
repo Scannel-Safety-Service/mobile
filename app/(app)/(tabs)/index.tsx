@@ -59,7 +59,7 @@ export default function HomeScreen() {
 
         // Compute document stats
         setTotalDocs(docsList.length);
-        
+
         const safetyCount = docsList.filter((d: any) => d.section === 'SAFETY_STATEMENT').length;
         setSafetyStatementsCount(safetyCount);
 
@@ -147,125 +147,124 @@ export default function HomeScreen() {
           style={styles.container}
           contentContainerStyle={styles.contentContainer}
           showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
-        }
-      >
-        {/* Welcome Header with Gradient */}
-        <View style={styles.welcomeCard}>
-          <LinearGradient
-            colors={isDark
-              ? ['#0a2140', '#0e2d50', '#0a2140']
-              : ['#155B9D', '#1a6db8', '#2B7CC1']
-            }
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={styles.welcomeGradient}
-          >
-            {/* Decorative circles */}
-            <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
-            <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.04)' }]} />
+          refreshControl={
+            <RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} tintColor={colors.primary} />
+          }
+        >
+          {/* Welcome Header with Gradient */}
+          <View style={styles.welcomeCard}>
+            <LinearGradient
+              colors={isDark
+                ? ['#0a2140', '#0e2d50', '#0a2140']
+                : ['#155B9D', '#1a6db8', '#2B7CC1']
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={styles.welcomeGradient}
+            >
+              {/* Decorative circles */}
+              <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.06)' }]} />
+              <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.04)' }]} />
 
-            <View style={styles.welcomeContent}>
-              <View style={styles.welcomeRow}>
-                <Text style={styles.welcomeText}>
-                  Hello, {user?.firstName || 'Employee'}
+              <View style={styles.welcomeContent}>
+                <View style={styles.welcomeRow}>
+                  <Text style={styles.welcomeText}>
+                    Hello, {user?.firstName || 'Employee'}
+                  </Text>
+                  <HelloWave />
+                </View>
+                <Text style={styles.companyText}>
+                  {user?.companyName || 'Scannel Safety'}
                 </Text>
-                <HelloWave />
               </View>
-              <Text style={styles.companyText}>
-                {user?.companyName || 'Scannel Safety'}
+              {/* Safety Status inline */}
+              <View style={[styles.statusPill, { backgroundColor: complianceBg }]}>
+                <View style={[styles.statusDot, { backgroundColor: complianceColor }]} />
+                <Text style={[styles.statusPillText, { color: complianceColor }]}>{complianceStatus}</Text>
+              </View>
+            </LinearGradient>
+          </View>
+
+          {/* Status Description Card */}
+          <View
+            style={[
+              styles.statusCard,
+              {
+                backgroundColor: cardBg,
+                borderColor: cardBorder,
+                boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.4)' : '0 12px 36px rgba(21, 91, 157, 0.06)',
+              },
+            ]}
+          >
+            <View style={styles.statusCardContent}>
+              <View style={styles.statusHeaderRow}>
+                {hasPendingReview ? (
+                  <AlertCircle size={24} color="#f59e0b" style={styles.statusIcon} />
+                ) : (
+                  <CheckCircle2 size={24} color="#10b981" style={styles.statusIcon} />
+                )}
+                <Text style={[styles.cardTitle, { color: colors.text }]}>Safety Compliance Status</Text>
+              </View>
+              <Text style={[styles.statusDescription, { color: colors.muted }]}>
+                {hasPendingReview
+                  ? 'You have documents pending review. Please review and sign them in the documents section to ensure compliance.'
+                  : 'Your account is fully active, and all assigned documents are reviewed and up to date.'}
               </Text>
             </View>
+          </View>
 
-            {/* Safety Status inline */}
-            <View style={[styles.statusPill, { backgroundColor: complianceBg }]}>
-              <View style={[styles.statusDot, { backgroundColor: complianceColor }]} />
-              <Text style={[styles.statusPillText, { color: complianceColor }]}>{complianceStatus}</Text>
-            </View>
-          </LinearGradient>
-        </View>
+          {/* Quick Overview Section */}
+          <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Overview</Text>
 
-        {/* Status Description Card */}
-        <View
-          style={[
-            styles.statusCard,
-            {
-              backgroundColor: cardBg,
-              borderColor: cardBorder,
-              boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.4)' : '0 12px 36px rgba(21, 91, 157, 0.06)',
-            },
-          ]}
-        >
-          <View style={styles.statusCardContent}>
-            <View style={styles.statusHeaderRow}>
-              {hasPendingReview ? (
-                <AlertCircle size={24} color="#f59e0b" style={styles.statusIcon} />
-              ) : (
-                <CheckCircle2 size={24} color="#10b981" style={styles.statusIcon} />
-              )}
-              <Text style={[styles.cardTitle, { color: colors.text }]}>Safety Compliance Status</Text>
+          <View style={styles.grid}>
+            {statCards.map((card, index) => {
+              const CardIcon = card.icon;
+              const iconCircleBg = isDark ? card.bgDark : card.bgLight;
+
+              return (
+                <Pressable
+                  key={index}
+                  onPress={triggerFeedback}
+                  style={({ pressed }) => [
+                    styles.gridItem,
+                    {
+                      backgroundColor: cardBg,
+                      borderColor: cardBorder,
+                      boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.4)' : '0 12px 36px rgba(21, 91, 157, 0.06)',
+                      transform: [{ scale: pressed ? 0.97 : 1 }],
+                    },
+                  ]}
+                >
+                  <View style={[styles.iconCircle, { backgroundColor: iconCircleBg }]}>
+                    <CardIcon size={24} color={card.iconColor} strokeWidth={2} />
+                  </View>
+                  <View style={styles.gridItemContent}>
+                    <Text style={[styles.statNumber, { color: colors.text }]}>{card.value}</Text>
+                    <Text style={[styles.statLabel, { color: colors.muted }]}>{card.label}</Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+
+          {/* Safety Notice Footer Banner */}
+          <View
+            style={[
+              styles.noticeBanner,
+              {
+                backgroundColor: isDark ? 'rgba(16, 29, 45, 0.7)' : 'rgba(230, 240, 250, 0.8)',
+                borderColor: isDark ? 'rgba(15, 39, 64, 0.4)' : 'rgba(226, 239, 250, 0.7)',
+              },
+            ]}
+          >
+            <View style={[styles.noticeIconCircle, { backgroundColor: isDark ? 'rgba(86, 185, 255, 0.1)' : 'rgba(21, 91, 157, 0.06)' }]}>
+              <Ionicons name="information-circle" size={20} color={colors.primary} />
             </View>
-            <Text style={[styles.statusDescription, { color: colors.muted }]}>
-              {hasPendingReview
-                ? 'You have documents pending review. Please review and sign them in the documents section to ensure compliance.'
-                : 'Your account is fully active, and all assigned documents are reviewed and up to date.'}
+            <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
+              Contact your company administrator if you require updates to your assigned credentials or documents.
             </Text>
           </View>
-        </View>
-
-        {/* Quick Overview Section */}
-        <Text style={[styles.sectionTitle, { color: colors.text }]}>Quick Overview</Text>
-
-        <View style={styles.grid}>
-          {statCards.map((card, index) => {
-            const CardIcon = card.icon;
-            const iconCircleBg = isDark ? card.bgDark : card.bgLight;
-
-            return (
-              <Pressable
-                key={index}
-                onPress={triggerFeedback}
-                style={({ pressed }) => [
-                  styles.gridItem,
-                  {
-                    backgroundColor: cardBg,
-                    borderColor: cardBorder,
-                    boxShadow: isDark ? '0 12px 36px rgba(0, 0, 0, 0.4)' : '0 12px 36px rgba(21, 91, 157, 0.06)',
-                    transform: [{ scale: pressed ? 0.97 : 1 }],
-                  },
-                ]}
-              >
-                <View style={[styles.iconCircle, { backgroundColor: iconCircleBg }]}>
-                  <CardIcon size={24} color={card.iconColor} strokeWidth={2} />
-                </View>
-                <View style={styles.gridItemContent}>
-                  <Text style={[styles.statNumber, { color: colors.text }]}>{card.value}</Text>
-                  <Text style={[styles.statLabel, { color: colors.muted }]}>{card.label}</Text>
-                </View>
-              </Pressable>
-            );
-          })}
-        </View>
-
-        {/* Safety Notice Footer Banner */}
-        <View
-          style={[
-            styles.noticeBanner,
-            {
-              backgroundColor: isDark ? 'rgba(16, 29, 45, 0.7)' : 'rgba(230, 240, 250, 0.8)',
-              borderColor: isDark ? 'rgba(15, 39, 64, 0.4)' : 'rgba(226, 239, 250, 0.7)',
-            },
-          ]}
-        >
-          <View style={[styles.noticeIconCircle, { backgroundColor: isDark ? 'rgba(86, 185, 255, 0.1)' : 'rgba(21, 91, 157, 0.06)' }]}>
-            <Ionicons name="information-circle" size={20} color={colors.primary} />
-          </View>
-          <Text style={[styles.noticeText, { color: colors.textSecondary }]}>
-            Contact your company administrator if you require updates to your assigned credentials or documents.
-          </Text>
-        </View>
-      </ScrollView>
+        </ScrollView>
       </SafeAreaView>
     </View>
   );

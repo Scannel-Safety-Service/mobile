@@ -1,10 +1,11 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, View } from 'react-native';
+import { ActivityIndicator, Alert, View } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { OneSignal } from 'react-native-onesignal';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
@@ -26,6 +27,52 @@ function RootLayoutContent() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // OneSignal Push Notifications setup
+  useEffect(() => {
+    // Initialize OneSignal SDK with the provided App ID
+    OneSignal.initialize('16d2ca85-5df6-4115-87d5-7370f45727f0');
+
+    let alertShown = false;
+
+    const requestPermissionAndRegister = () => {
+      OneSignal.Notifications.requestPermission(true);
+    };
+
+    const checkSubscriptionId = (id?: string | null) => {
+      if (id && !id.startsWith('local-') && !alertShown) {
+        alertShown = true;
+        Alert.alert(
+          'Your OneSignal SDK integration is complete!',
+          'You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.',
+          [
+            {
+              text: 'Got it',
+              onPress: () => {
+                requestPermissionAndRegister();
+              },
+            },
+          ]
+        );
+      }
+    };
+
+    // Evaluate the subscription status immediately
+    OneSignal.User.pushSubscription.getIdAsync().then((id) => {
+      checkSubscriptionId(id);
+    });
+
+    // Setup push subscription observer/listener
+    const listener = (event: any) => {
+      checkSubscriptionId(event.current.id);
+    };
+
+    OneSignal.User.pushSubscription.addEventListener('change', listener);
+
+    return () => {
+      OneSignal.User.pushSubscription.removeEventListener('change', listener);
+    };
+  }, []);
 
   // Reactive auth guard — redirect based on authentication state
   useEffect(() => {

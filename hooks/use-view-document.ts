@@ -5,6 +5,7 @@ import * as IntentLauncher from 'expo-intent-launcher';
 import * as Sharing from 'expo-sharing';
 import { useAuthStore } from '@/store/auth-store';
 import { API_URL } from '@/lib/api';
+import { cleanFileName } from '@/lib/file-utils';
 
 export function useViewDocument() {
   const [isDownloading, setIsDownloading] = useState(false);
@@ -20,12 +21,22 @@ export function useViewDocument() {
     try {
       const storageFileName = fileUrl.split('/').pop() || '';
       const localTarget = `${FileSystem.cacheDirectory}${storageFileName}`;
+      
+      const friendlyName = cleanFileName(originalFileName || 'document.pdf');
+      const friendlyLocalTarget = `${FileSystem.cacheDirectory}${friendlyName}`;
+
       const fileInfo = await FileSystem.getInfoAsync(localTarget);
 
       // Helper to open natively
       const openNatively = async (uriToOpen: string) => {
+        // Copy to friendly filename so the OS viewer uses the decoded name
+        await FileSystem.copyAsync({
+          from: uriToOpen,
+          to: friendlyLocalTarget,
+        });
+
         if (Platform.OS === 'android') {
-          const cUri = await FileSystem.getContentUriAsync(uriToOpen);
+          const cUri = await FileSystem.getContentUriAsync(friendlyLocalTarget);
           await IntentLauncher.startActivityAsync('android.intent.action.VIEW', {
             data: cUri,
             flags: 1, // Grant read permission
@@ -34,10 +45,16 @@ export function useViewDocument() {
         } else {
           const isAvailable = await Sharing.isAvailableAsync();
           if (isAvailable) {
-            await Sharing.shareAsync(uriToOpen, {
+            await Sharing.shareAsync(friendlyLocalTarget, {
               mimeType: 'application/pdf',
               dialogTitle: 'Open Document',
             });
+            // Cleanup friendly copy on iOS since shareAsync blocks until closed
+            try {
+              await FileSystem.deleteAsync(friendlyLocalTarget, { idempotent: true });
+            } catch (err) {
+              console.warn('[View Hook] Failed to cleanup friendly preview file:', err);
+            }
           } else {
             throw new Error('Native sharing or preview sheet is not available on this device');
           }

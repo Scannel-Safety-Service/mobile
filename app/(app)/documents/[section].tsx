@@ -17,6 +17,8 @@ import { useViewDocument } from '@/hooks/use-view-document';
 import { useAuthStore } from '@/store/auth-store';
 import { apiRequest } from '@/lib/api';
 import { BackgroundLogo } from '@/components/background-logo';
+import { useShareDocuments } from '@/hooks/use-share-documents';
+import { ShareProgressOverlay } from '@/components/documents/share-progress-overlay';
 
 export default function SectionScreen() {
   const { section } = useLocalSearchParams<{ section: string }>();
@@ -31,6 +33,18 @@ export default function SectionScreen() {
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
+
+  const {
+    progressState,
+    shareFolderDocuments,
+    resetProgress,
+  } = useShareDocuments();
+
+  const handleShareFolder = useCallback(() => {
+    if (!documents || documents.length === 0) return;
+    shareFolderDocuments(documents, folderDef?.label || 'Documents');
+  }, [documents, folderDef, shareFolderDocuments]);
+
 
   const handleCreateIndividual = async () => {
     if (!newIndividualName.trim()) {
@@ -206,7 +220,26 @@ export default function SectionScreen() {
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <BackgroundLogo />
-      <Stack.Screen options={{ title: folderDef.label }} />
+      <Stack.Screen
+        options={{
+          title: folderDef.label,
+          headerRight: () => {
+            const canShareFolder = !folderDef.hasSubfolders && !folderDef.hasIndividuals && documents && documents.length > 0;
+            if (!canShareFolder) return null;
+            return (
+              <Pressable
+                onPress={handleShareFolder}
+                style={({ pressed }) => [
+                  styles.headerShareButton,
+                  { opacity: pressed ? 0.6 : 1 }
+                ]}
+              >
+                <Ionicons name="share-social-outline" size={22} color={colors.primary} />
+              </Pressable>
+            );
+          }
+        }}
+      />
 
       {isLoading ? (
         <View style={styles.centerContainer}>
@@ -395,6 +428,8 @@ export default function SectionScreen() {
           </View>
         </View>
       )}
+
+      <ShareProgressOverlay progressState={progressState} onClose={resetProgress} />
     </View>
   );
 }
@@ -624,5 +659,9 @@ const styles = StyleSheet.create({
     color: '#ffffff',
     ...Typography.buttonSmall,
     fontWeight: '600',
+  },
+  headerShareButton: {
+    marginRight: 4,
+    padding: 8,
   },
 });
