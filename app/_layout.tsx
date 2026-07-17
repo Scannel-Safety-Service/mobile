@@ -31,7 +31,7 @@ function RootLayoutContent() {
   // OneSignal Push Notifications setup
   useEffect(() => {
     // Initialize OneSignal SDK with the provided App ID
-    OneSignal.initialize('16d2ca85-5df6-4115-87d5-7370f45727f0');
+    OneSignal.initialize('16d2ca85-5df6-4115-87d5-7370f45727f0'); // env
 
     let alertShown = false;
 
