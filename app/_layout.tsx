@@ -9,6 +9,7 @@ import { OneSignal } from 'react-native-onesignal';
 
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
+import { syncDeviceToken } from '@/store/auth-store';
 import { Colors } from '@/constants/theme';
 
 export const unstable_settings = {
@@ -72,7 +73,14 @@ function RootLayoutContent() {
 
     // Setup push subscription observer/listener
     const listener = (event: any) => {
-      checkSubscriptionId(event.current.id);
+      const id: string | undefined = event.current.id;
+      checkSubscriptionId(id);
+      // Sync the new subscription ID to the backend whenever it changes
+      if (id && !id.startsWith('local-')) {
+        syncDeviceToken().catch((e) =>
+          console.warn('[layout] syncDeviceToken on subscription change failed:', e),
+        );
+      }
     };
 
     OneSignal.User.pushSubscription.addEventListener('change', listener);

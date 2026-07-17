@@ -8,7 +8,8 @@ import {
   getUserProfile, 
   clearCredentials 
 } from '@/lib/secure-store';
-import { API_URL, registerUnauthorizedHandler } from '@/lib/api';
+import { API_URL, registerUnauthorizedHandler, apiRequest } from '@/lib/api';
+import { OneSignal } from 'react-native-onesignal';
 
 export function decodeJwt(token: string): any {
   try {
@@ -22,6 +23,27 @@ export function decodeJwt(token: string): any {
   } catch (error) {
     console.error('Error decoding JWT token:', error);
     return null;
+  }
+}
+
+/**
+ * Syncs the current OneSignal subscription ID to the backend.
+ * Should be called after login and whenever the subscription ID changes.
+ * Best-effort — failures are logged but never block the calling flow.
+ */
+export async function syncDeviceToken(): Promise<void> {
+  try {
+    const subscriptionId = await OneSignal.User.pushSubscription.getIdAsync();
+    if (!subscriptionId || subscriptionId.startsWith('local-')) return;
+
+    await apiRequest('/auth/device-token', {
+      method: 'POST',
+      body: JSON.stringify({ subscriptionId }),
+    });
+  } catch (err) {
+    // Non-fatal — the scheduler will retry delivery; the token will be synced
+    // next time the app launches or permission is granted.
+    console.warn('[syncDeviceToken] Failed to register device token:', err);
   }
 }
 
@@ -175,6 +197,13 @@ export const useAuthStore = create<AuthState>((set) => {
         await saveUserProfile(user);
 
         set({ status: 'authenticated', accessToken: tokens.accessToken, user, loginError: null });
+
+        // Best-effort: sync device token after login
+        // Run in background — do not await to avoid blocking login flow
+        syncDeviceToken().catch((e) =>
+          console.warn('[auth-store] syncDeviceToken post-login failed:', e),
+        );
+
         return true;
       } catch (error) {
         console.error('Login network error:', error);
