@@ -27,6 +27,7 @@ export default function ForgotPasswordScreen() {
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
 
   const handleResetRequest = async () => {
     if (isSubmitting) return;
@@ -133,7 +134,12 @@ export default function ForgotPasswordScreen() {
                       styles.inputWrapper,
                       {
                         backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                        borderColor: localError ? '#f43f5e' : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                        borderColor: localError 
+                          ? '#f43f5e' 
+                          : isEmailFocused 
+                            ? colors.primary 
+                            : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                        opacity: isSubmitting ? 0.6 : 1,
                       },
                     ]}
                   >
@@ -149,6 +155,8 @@ export default function ForgotPasswordScreen() {
                         setEmail(text);
                         if (localError) setLocalError(null);
                       }}
+                      onFocus={() => setIsEmailFocused(true)}
+                      onBlur={() => setIsEmailFocused(false)}
                       autoCapitalize="none"
                       keyboardType="email-address"
                       autoComplete="email"

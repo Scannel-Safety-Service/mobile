@@ -63,6 +63,7 @@ export default function DocumentUploadScreen() {
 
   const [documentTitle, setDocumentTitle] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
+  const [isTitleFocused, setIsTitleFocused] = useState(false);
 
   // Auto-fill document title with the filename (without extension) when a file is selected
   useEffect(() => {
@@ -262,9 +263,11 @@ export default function DocumentUploadScreen() {
                     styles.inputWrapper,
                     {
                       backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                      borderColor: colors.cardBorder,
+                      borderColor: showDropdown ? colors.primary : colors.cardBorder,
+                      opacity: isLoading ? 0.6 : 1,
                     },
                   ]}
+                  disabled={isLoading}
                 >
                   <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
                     <Ionicons name="person-outline" size={18} color={colors.primary} />
@@ -314,7 +317,12 @@ export default function DocumentUploadScreen() {
                     styles.inputWrapper,
                     {
                       backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                      borderColor: displayError ? '#f43f5e' : colors.cardBorder,
+                      borderColor: displayError 
+                        ? '#f43f5e' 
+                        : isTitleFocused 
+                          ? colors.primary 
+                          : colors.cardBorder,
+                      opacity: isLoading ? 0.6 : 1,
                     },
                   ]}
                 >
@@ -330,6 +338,8 @@ export default function DocumentUploadScreen() {
                       setDocumentTitle(text);
                       if (localError) setLocalError(null);
                     }}
+                    onFocus={() => setIsTitleFocused(true)}
+                    onBlur={() => setIsTitleFocused(false)}
                     editable={!isLoading}
                     autoCapitalize="words"
                     returnKeyType="done"

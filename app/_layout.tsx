@@ -39,21 +39,29 @@ function RootLayoutContent() {
       OneSignal.Notifications.requestPermission(true);
     };
 
-    const checkSubscriptionId = (id?: string | null) => {
+    const checkSubscriptionId = async (id?: string | null) => {
       if (id && !id.startsWith('local-') && !alertShown) {
-        alertShown = true;
-        Alert.alert(
-          'Your OneSignal SDK integration is complete!',
-          'You can now send Push Notifications & In-App Messages through OneSignal. Tap below to enable push notifications.',
-          [
-            {
-              text: 'Got it',
-              onPress: () => {
-                requestPermissionAndRegister();
+        // Only prompt if the user hasn't already granted notification permissions
+        const hasPermission = await OneSignal.Notifications.getPermissionAsync();
+        if (!hasPermission) {
+          alertShown = true;
+          Alert.alert(
+            'Enable Notifications',
+            'Stay updated with real-time safety alerts, document updates, and compliance tasks.',
+            [
+              {
+                text: 'Later',
+                style: 'cancel',
               },
-            },
-          ]
-        );
+              {
+                text: 'Enable',
+                onPress: () => {
+                  requestPermissionAndRegister();
+                },
+              },
+            ]
+          );
+        }
       }
     };
 
