@@ -29,6 +29,8 @@ export default function LoginScreen() {
   const [showPassword, setShowPassword] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isEmailFocused, setIsEmailFocused] = useState(false);
+  const [isPasswordFocused, setIsPasswordFocused] = useState(false);
 
   // Clear errors on mount only
   useEffect(() => {
@@ -143,7 +145,12 @@ export default function LoginScreen() {
                   styles.inputWrapper,
                   {
                     backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                    borderColor: displayError ? '#f43f5e' : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                    borderColor: displayError 
+                      ? '#f43f5e' 
+                      : isEmailFocused 
+                        ? colors.primary 
+                        : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                    opacity: isLoading ? 0.6 : 1,
                   },
                 ]}
               >
@@ -160,6 +167,8 @@ export default function LoginScreen() {
                     if (localError) setLocalError(null);
                     if (loginError) clearError();
                   }}
+                  onFocus={() => setIsEmailFocused(true)}
+                  onBlur={() => setIsEmailFocused(false)}
                   autoCapitalize="none"
                   keyboardType="email-address"
                   autoComplete="email"
@@ -176,7 +185,12 @@ export default function LoginScreen() {
                   styles.inputWrapper,
                   {
                     backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                    borderColor: displayError ? '#f43f5e' : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                    borderColor: displayError 
+                      ? '#f43f5e' 
+                      : isPasswordFocused 
+                        ? colors.primary 
+                        : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
+                    opacity: isLoading ? 0.6 : 1,
                   },
                 ]}
               >
@@ -193,6 +207,8 @@ export default function LoginScreen() {
                     if (localError) setLocalError(null);
                     if (loginError) clearError();
                   }}
+                  onFocus={() => setIsPasswordFocused(true)}
+                  onBlur={() => setIsPasswordFocused(false)}
                   secureTextEntry={!showPassword}
                   autoCapitalize="none"
                   autoComplete="password"

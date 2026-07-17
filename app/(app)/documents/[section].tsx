@@ -31,6 +31,7 @@ export default function SectionScreen() {
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
   const [newIndividualName, setNewIndividualName] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isNameFocused, setIsNameFocused] = useState(false);
 
   const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
 
@@ -363,13 +364,22 @@ export default function SectionScreen() {
 
             <View style={styles.modalInputGroup}>
               <Text style={[styles.modalInputLabel, { color: colors.muted }]}>NAME</Text>
-              <View style={[styles.modalInputWrapper, { backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)', borderColor: colors.cardBorder }]}>
+              <View style={[
+                styles.modalInputWrapper,
+                {
+                  backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
+                  borderColor: isNameFocused ? colors.primary : colors.cardBorder,
+                  opacity: isSubmitting ? 0.6 : 1,
+                }
+              ]}>
                 <TextInput
                   style={[styles.modalInput, { color: colors.text }]}
                   placeholder="Enter individual's full name"
                   placeholderTextColor={colors.muted}
                   value={newIndividualName}
                   onChangeText={setNewIndividualName}
+                  onFocus={() => setIsNameFocused(true)}
+                  onBlur={() => setIsNameFocused(false)}
                   autoCapitalize="words"
                   autoFocus
                   editable={!isSubmitting}
