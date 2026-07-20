@@ -123,7 +123,7 @@ export default function LoginScreen() {
               contentFit="contain"
             />
             <Text style={[styles.subtitle, { color: colors.muted }]}>
-              Employee Safety & Document Service
+              Scannell Safety Services
             </Text>
           </View>
 
@@ -145,10 +145,10 @@ export default function LoginScreen() {
                   styles.inputWrapper,
                   {
                     backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                    borderColor: displayError 
-                      ? '#f43f5e' 
-                      : isEmailFocused 
-                        ? colors.primary 
+                    borderColor: displayError
+                      ? '#f43f5e'
+                      : isEmailFocused
+                        ? colors.primary
                         : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
                     opacity: isLoading ? 0.6 : 1,
                   },
@@ -185,10 +185,10 @@ export default function LoginScreen() {
                   styles.inputWrapper,
                   {
                     backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                    borderColor: displayError 
-                      ? '#f43f5e' 
-                      : isPasswordFocused 
-                        ? colors.primary 
+                    borderColor: displayError
+                      ? '#f43f5e'
+                      : isPasswordFocused
+                        ? colors.primary
                         : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.9)'),
                     opacity: isLoading ? 0.6 : 1,
                   },
