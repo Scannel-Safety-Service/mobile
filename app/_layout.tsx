@@ -1,8 +1,9 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Alert, View } from 'react-native';
+import { ActivityIndicator, Alert, LogBox, StyleSheet, View } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Slot, useRouter, useSegments } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { OneSignal } from 'react-native-onesignal';
@@ -11,6 +12,16 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { useAuthStore } from '@/store/auth-store';
 import { syncDeviceToken } from '@/store/auth-store';
 import { Colors } from '@/constants/theme';
+
+// Ignore benign development warning triggered during Android system navigation mode switches (3-button <-> gesture)
+LogBox.ignoreLogs([
+  'Looks like you have configured linking in multiple places',
+]);
+
+// Prevent native splash screen from hiding automatically before auth status is ready
+SplashScreen.preventAutoHideAsync().catch(() => {
+  /* ignore error if already prevented */
+});
 
 export const unstable_settings = {
   // Prevent back-navigation to the splash loader after the app is mounted
@@ -28,6 +39,13 @@ function RootLayoutContent() {
   useEffect(() => {
     initialize();
   }, [initialize]);
+
+  // Hide splash screen once auth status is determined
+  useEffect(() => {
+    if (status !== 'idle' && status !== 'loading') {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [status]);
 
   // OneSignal Push Notifications setup
   useEffect(() => {
@@ -105,19 +123,17 @@ function RootLayoutContent() {
     }
   }, [status, segments, router]);
 
-  // Full-screen loader during bootstrap only — NOT during login form submission
-  if (status === 'idle' || status === 'loading') {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background }}>
-        <ActivityIndicator size="large" color={colors.primary} />
-      </View>
-    );
-  }
+  const isLoading = status === 'idle' || status === 'loading';
 
   return (
     <SafeAreaProvider>
       <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
         <Slot />
+        {isLoading && (
+          <View style={[StyleSheet.absoluteFill, { justifyContent: 'center', alignItems: 'center', backgroundColor: colors.background, zIndex: 999 }]}>
+            <ActivityIndicator size="large" color={colors.primary} />
+          </View>
+        )}
         <StatusBar style="auto" />
       </ThemeProvider>
     </SafeAreaProvider>

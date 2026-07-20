@@ -1,6 +1,7 @@
 import { Tabs } from 'expo-router';
 import React from 'react';
 import { Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { HapticTab } from '@/components/haptic-tab';
 import { IconSymbol } from '@/components/ui/icon-symbol';
@@ -11,6 +12,10 @@ export default function TabLayout() {
   const colorScheme = useColorScheme();
   const colors = Colors[colorScheme ?? 'light'];
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
+
+  const bottomPadding = Math.max(insets.bottom, Platform.OS === 'ios' ? 20 : 8);
+  const tabBarHeight = (Platform.OS === 'ios' ? 52 : 56) + bottomPadding;
 
   return (
     <Tabs
@@ -28,9 +33,9 @@ export default function TabLayout() {
           backgroundColor: isDark ? 'rgba(8,23,41,0.92)' : 'rgba(255,255,255,0.92)',
           borderTopColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
           borderTopWidth: 1,
-          height: Platform.OS === 'ios' ? 88 : 68,
+          height: tabBarHeight,
           paddingTop: 8,
-          paddingBottom: Platform.OS === 'ios' ? 28 : 10,
+          paddingBottom: bottomPadding,
           // Frosted glass elevation
           ...(Platform.OS === 'android' && { elevation: 8 }),
         },
