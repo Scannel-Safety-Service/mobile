@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -26,6 +27,7 @@ export default function SubfolderScreen() {
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
 
@@ -149,6 +151,7 @@ export default function SubfolderScreen() {
         style={({ pressed }) => [
           styles.fab,
           {
+            bottom: Math.max(insets.bottom, 16) + 16,
             backgroundColor: colors.primary,
             opacity: pressed ? 0.9 : 1,
           },

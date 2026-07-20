@@ -38,7 +38,7 @@ export default function DocumentsScreen() {
     <View style={[styles.container, { backgroundColor: colors.background }]}>
       <BackgroundLogo />
 
-      <SafeAreaView style={styles.safeArea}>
+      <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
           <Text style={[styles.title, { color: colors.text }]}>Safety Documents</Text>

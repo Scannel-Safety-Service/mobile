@@ -1,6 +1,7 @@
 import React, { useEffect, useCallback, useState } from 'react';
 import { StyleSheet, View, Text, FlatList, Pressable, ActivityIndicator, Modal, TextInput, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -26,6 +27,7 @@ export default function SectionScreen() {
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const { user } = useAuthStore();
   const [isCreateModalVisible, setIsCreateModalVisible] = useState(false);
@@ -263,7 +265,7 @@ export default function SectionScreen() {
           data={categories}
           renderItem={renderCategoryItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 80 + Math.max(insets.bottom, 16) }]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState
@@ -278,7 +280,7 @@ export default function SectionScreen() {
           data={individuals}
           renderItem={renderCategoryItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 80 + Math.max(insets.bottom, 16) }]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState
@@ -293,7 +295,7 @@ export default function SectionScreen() {
           data={documents}
           renderItem={renderDocumentItem}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: 80 + Math.max(insets.bottom, 16) }]}
           showsVerticalScrollIndicator={false}
           ListEmptyComponent={
             <EmptyState
@@ -311,6 +313,7 @@ export default function SectionScreen() {
           style={({ pressed }) => [
             styles.fab,
             {
+              bottom: Math.max(insets.bottom, 16) + 16,
               backgroundColor: colors.primary,
               opacity: pressed ? 0.9 : 1,
             },
@@ -330,6 +333,7 @@ export default function SectionScreen() {
           style={({ pressed }) => [
             styles.fab,
             {
+              bottom: Math.max(insets.bottom, 16) + 16,
               backgroundColor: colors.primary,
               opacity: pressed ? 0.9 : 1,
             },

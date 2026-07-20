@@ -11,6 +11,7 @@ import {
   ScrollView,
 } from 'react-native';
 import { useLocalSearchParams, Stack, useRouter } from 'expo-router';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -36,6 +37,7 @@ export default function DocumentUploadScreen() {
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
+  const insets = useSafeAreaInsets();
 
   const sectionEnum = section as DocumentSection;
   const folderDef = PREDEFINED_FOLDERS.find((f) => f.key === section);
@@ -143,7 +145,7 @@ export default function DocumentUploadScreen() {
       <Stack.Screen options={{ title: 'Upload Document' }} />
       
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + Math.max(insets.bottom, 16) }]}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
