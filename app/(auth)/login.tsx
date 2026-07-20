@@ -122,9 +122,9 @@ export default function LoginScreen() {
               style={styles.logoImage}
               contentFit="contain"
             />
-            <Text style={[styles.subtitle, { color: colors.muted }]}>
+            {/* <Text style={[styles.subtitle, { color: colors.muted }]}>
               Scannell Safety Services
-            </Text>
+            </Text> */}
           </View>
 
           {/* Glass Card Form */}
