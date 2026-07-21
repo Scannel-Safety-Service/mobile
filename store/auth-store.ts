@@ -107,8 +107,7 @@ export const useAuthStore = create<AuthState>((set) => {
               const refreshedUser: UserProfile = {
                 id: newDecoded.sub,
                 email: user.email,
-                firstName: newDecoded.firstName || user.firstName,
-                lastName: newDecoded.lastName || user.lastName,
+                name: newDecoded.name || user.name,
                 role: newDecoded.role,
                 companyId: newDecoded.companyId,
                 companyName: newDecoded.companyName || user.companyName || null,
@@ -180,13 +179,12 @@ export const useAuthStore = create<AuthState>((set) => {
         }
 
         // Build user profile from JWT claims directly (no /users/me endpoint needed)
-        // firstName and lastName come from token claims if the backend includes them,
+        // name comes from token claims if the backend includes it,
         // otherwise default gracefully — they can be enriched later.
         const user: UserProfile = {
           id: decoded.sub,
           email,
-          firstName: decoded.firstName || decoded.name?.split(' ')?.[0] || 'Employee',
-          lastName: decoded.lastName || decoded.name?.split(' ')?.slice(1).join(' ') || '',
+          name: decoded.name || 'Employee',
           role: decoded.role,
           companyId: decoded.companyId,
           companyName: decoded.companyName || null,

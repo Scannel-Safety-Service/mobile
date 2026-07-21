@@ -6,6 +6,7 @@ import {
   TextInput,
   Pressable,
   KeyboardAvoidingView,
+  ScrollView,
   Platform,
   ActivityIndicator,
 } from 'react-native';
@@ -116,7 +117,18 @@ export default function LoginScreen() {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={styles.keyboardView}
       >
-        <View style={[styles.content, { paddingBottom: Math.max(insets.bottom, 16) }]}>
+        <ScrollView
+          contentContainerStyle={[
+            styles.scrollContent,
+            {
+              paddingTop: Math.max(insets.top + 16, 36),
+              paddingBottom: Math.max(insets.bottom + 16, 24),
+            },
+          ]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+          bounces={false}
+        >
           {/* Logo / Header */}
           <View style={styles.headerArea}>
             <Image
@@ -291,7 +303,7 @@ export default function LoginScreen() {
           <Text style={[styles.footerText, { color: colors.muted }]}>
             Your credentials are provided by your company administrator.
           </Text>
-        </View>
+        </ScrollView>
       </KeyboardAvoidingView>
     </View>
   );
@@ -324,9 +336,10 @@ const styles = StyleSheet.create({
   },
   keyboardView: {
     flex: 1,
-    justifyContent: 'center',
   },
-  content: {
+  scrollContent: {
+    flexGrow: 1,
+    justifyContent: 'center',
     paddingHorizontal: 24,
     gap: 32,
   },

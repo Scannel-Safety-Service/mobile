@@ -51,7 +51,7 @@ export default function ProfileScreen() {
 
 
             <Text style={styles.userName}>
-              {user ? `${user.firstName} ${user.lastName}`.trim() : 'Loading Employee...'}
+              {user ? user.name : 'Loading Employee...'}
             </Text>
             <Text style={styles.userEmail}>
               {user?.email || ''}

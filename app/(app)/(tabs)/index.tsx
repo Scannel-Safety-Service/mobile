@@ -169,7 +169,7 @@ export default function HomeScreen() {
               <View style={styles.welcomeContent}>
                 <View style={styles.welcomeRow}>
                   <Text style={styles.welcomeText}>
-                    Hello, {user?.firstName || 'Employee'}
+                    Hello, {user?.name || 'Employee'}
                   </Text>
                   <HelloWave />
                 </View>
