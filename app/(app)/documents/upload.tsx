@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -26,11 +26,12 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { BackgroundLogo } from '@/components/background-logo';
 
 export default function DocumentUploadScreen() {
-  const { section, categoryId, categoryName, individualName } = useLocalSearchParams<{
+  const { section, categoryId, categoryName, individualName, individualId } = useLocalSearchParams<{
     section: string;
     categoryId?: string;
     categoryName?: string;
     individualName?: string;
+    individualId?: string;
   }>();
 
   const router = useRouter();
@@ -47,9 +48,10 @@ export default function DocumentUploadScreen() {
   const {
     individuals,
     isLoading: isLoadingIndividuals,
-  } = useIndividuals(isTrainingQualifications && !individualName);
+  } = useIndividuals(isTrainingQualifications && !individualName && !individualId);
 
-  const [selectedIndividual, setSelectedIndividual] = useState('');
+  const [selectedIndividualId, setSelectedIndividualId] = useState<string | undefined>(undefined);
+  const [selectedIndividualName, setSelectedIndividualName] = useState<string | undefined>(undefined);
   const [showDropdown, setShowDropdown] = useState(false);
 
   const {
@@ -66,8 +68,9 @@ export default function DocumentUploadScreen() {
   const [documentTitle, setDocumentTitle] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [isTitleFocused, setIsTitleFocused] = useState(false);
+  const titleInputRef = useRef<TextInput>(null);
 
-  // Auto-fill document title with the filename (without extension) when a file is selected
+  // Auto-fill document title with the filename (without extension) when a file is selected and auto-focus input
   useEffect(() => {
     if (selectedFile) {
       const baseName = selectedFile.name.substring(0, selectedFile.name.lastIndexOf('.')) || selectedFile.name;
@@ -75,6 +78,13 @@ export default function DocumentUploadScreen() {
       const cleanTitle = baseName.replace(/[_-]/g, ' ');
       setDocumentTitle(cleanTitle);
       setLocalError(null);
+
+      // Auto-activate & focus input field after OS modal picker dismissal completes (~350ms)
+      const focusTimer = setTimeout(() => {
+        titleInputRef.current?.focus();
+      }, 350);
+
+      return () => clearTimeout(focusTimer);
     } else {
       setDocumentTitle('');
     }
@@ -84,7 +94,7 @@ export default function DocumentUploadScreen() {
   useEffect(() => {
     if (success) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      
+
       // Trigger background reload in the Zustand store so the document appears instantly in lists
       const { fetchDocuments } = useDocumentsStore.getState();
       fetchDocuments(sectionEnum, categoryId);
@@ -114,8 +124,10 @@ export default function DocumentUploadScreen() {
       return;
     }
 
-    const activeIndividual = individualName || selectedIndividual;
-    if (isTrainingQualifications && !activeIndividual) {
+    const activeIndividualName = individualName || selectedIndividualName;
+    const activeIndividualId = individualId || selectedIndividualId;
+
+    if (isTrainingQualifications && (!activeIndividualName || !activeIndividualId)) {
       setLocalError('Please select an individual.');
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
       return;
@@ -123,12 +135,9 @@ export default function DocumentUploadScreen() {
 
     setLocalError(null);
 
-    // Format title by appending " - IndividualName" for training qualifications
-    const finalTitle = isTrainingQualifications
-      ? `${documentTitle.trim()} - ${activeIndividual}`
-      : documentTitle.trim();
+    const finalTitle = documentTitle.trim();
 
-    const uploaded = await uploadFile(sectionEnum, finalTitle, categoryId);
+    const uploaded = await uploadFile(sectionEnum, finalTitle, categoryId, activeIndividualId);
     if (!uploaded) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
     }
@@ -143,7 +152,7 @@ export default function DocumentUploadScreen() {
     >
       <BackgroundLogo />
       <Stack.Screen options={{ title: 'Upload Document' }} />
-      
+
       <ScrollView
         contentContainerStyle={[styles.scrollContent, { paddingBottom: 24 + Math.max(insets.bottom, 16) }]}
         keyboardShouldPersistTaps="handled"
@@ -153,7 +162,7 @@ export default function DocumentUploadScreen() {
         <View style={styles.headerInfo}>
           <Text style={[styles.destinationLabel, { color: colors.muted }]}>UPLOADING TO</Text>
           <Text style={[styles.destinationTitle, { color: colors.text }]}>
-            {folderDef?.label} {categoryName ? `› ${categoryName}` : individualName ? `› ${individualName}` : ''}
+            {folderDef?.label} {categoryName ? `› ${categoryName}` : (individualName || selectedIndividualName) ? `› ${individualName || selectedIndividualName}` : ''}
           </Text>
         </View>
 
@@ -171,7 +180,7 @@ export default function DocumentUploadScreen() {
         ) : (
           /* Form Content State */
           <View style={styles.formContainer}>
-            
+
             {/* File selection slot */}
             {!selectedFile ? (
               <View style={[styles.dashedBox, { borderColor: colors.cardBorder, backgroundColor: isDark ? 'rgba(8,23,41,0.5)' : 'rgba(255,255,255,0.7)' }]}>
@@ -255,8 +264,8 @@ export default function DocumentUploadScreen() {
               </View>
             )}
 
-            {/* Individual select dropdown (for Training Qualifications when individualName is not pre-selected) */}
-            {selectedFile && isTrainingQualifications && !individualName && (
+            {/* Individual select dropdown (for Training Qualifications when individualName/Id is not pre-selected) */}
+            {selectedFile && isTrainingQualifications && (!individualName || !individualId) && (
               <View style={styles.inputGroup}>
                 <Text style={[styles.inputLabel, { color: colors.muted }]}>SELECT INDIVIDUAL</Text>
                 <Pressable
@@ -274,8 +283,8 @@ export default function DocumentUploadScreen() {
                   <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
                     <Ionicons name="person-outline" size={18} color={colors.primary} />
                   </View>
-                  <Text style={[styles.inputText, { color: selectedIndividual ? colors.text : colors.muted, flex: 1 }]}>
-                    {selectedIndividual || 'Select an individual...'}
+                  <Text style={[styles.inputText, { color: selectedIndividualName ? colors.text : colors.muted, flex: 1 }]}>
+                    {selectedIndividualName || 'Select an individual...'}
                   </Text>
                   <Ionicons name={showDropdown ? "chevron-up" : "chevron-down"} size={18} color={colors.muted} />
                 </Pressable>
@@ -291,7 +300,8 @@ export default function DocumentUploadScreen() {
                         <Pressable
                           key={ind.id}
                           onPress={() => {
-                            setSelectedIndividual(ind.name);
+                            setSelectedIndividualId(ind.id);
+                            setSelectedIndividualName(ind.name);
                             setShowDropdown(false);
                             if (localError) setLocalError(null);
                           }}
@@ -314,24 +324,35 @@ export default function DocumentUploadScreen() {
             {selectedFile && (
               <View style={styles.inputGroup}>
                 <Text style={[styles.inputLabel, { color: colors.muted }]}>DOCUMENT DISPLAY NAME</Text>
-                <View
+
+                <Pressable
+                  onPress={() => titleInputRef.current?.focus()}
                   style={[
                     styles.inputWrapper,
                     {
-                      backgroundColor: isDark ? 'rgba(4,14,26,0.6)' : 'rgba(244,248,252,0.9)',
-                      borderColor: displayError 
-                        ? '#f43f5e' 
-                        : isTitleFocused 
-                          ? colors.primary 
-                          : colors.cardBorder,
+                      backgroundColor: isDark
+                        ? (isTitleFocused ? '#112b46' : '#0e243a')
+                        : '#ffffff',
+                      borderColor: displayError
+                        ? '#f43f5e'
+                        : isTitleFocused
+                          ? colors.primary
+                          : isDark ? 'rgba(86, 185, 255, 0.5)' : 'rgba(21, 91, 157, 0.45)',
+                      borderWidth: isTitleFocused ? 2 : 1.5,
+                      boxShadow: isTitleFocused
+                        ? `0 4px 14px ${isDark ? 'rgba(86, 185, 255, 0.25)' : 'rgba(21, 91, 157, 0.2)'}`
+                        : `0 2px 8px ${isDark ? 'rgba(0, 0, 0, 0.3)' : 'rgba(21, 91, 157, 0.08)'}`,
                       opacity: isLoading ? 0.6 : 1,
                     },
                   ]}
                 >
-                  <View style={[styles.inputIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
-                    <Ionicons name="create-outline" size={18} color={colors.primary} />
+                  <View style={[styles.inputIconCircle, { backgroundColor: isTitleFocused ? (isDark ? 'rgba(86, 185, 255, 0.22)' : 'rgba(21, 91, 157, 0.15)') : (isDark ? 'rgba(86, 185, 255, 0.12)' : 'rgba(21, 91, 157, 0.08)') }]}>
+                    <Ionicons name="document-text" size={18} color={colors.primary} />
                   </View>
+
                   <TextInput
+                    ref={titleInputRef}
+                    autoFocus={true}
                     style={[styles.input, { color: colors.text }]}
                     placeholder="Enter document title"
                     placeholderTextColor={colors.muted}
@@ -345,9 +366,25 @@ export default function DocumentUploadScreen() {
                     editable={!isLoading}
                     autoCapitalize="words"
                     returnKeyType="done"
+                    selectionColor={colors.primary}
+                    cursorColor={colors.primary}
                     onSubmitEditing={handleUploadSubmit}
                   />
-                </View>
+
+                  {documentTitle.length > 0 && isTitleFocused ? (
+                    <Pressable
+                      onPress={() => setDocumentTitle('')}
+                      style={styles.clearButton}
+                      hitSlop={10}
+                    >
+                      <Ionicons name="close-circle" size={18} color={colors.muted} />
+                    </Pressable>
+                  ) : (
+                    <View style={styles.editIconBadge}>
+                      <Ionicons name="pencil-outline" size={16} color={isTitleFocused ? colors.primary : colors.muted} />
+                    </View>
+                  )}
+                </Pressable>
               </View>
             )}
 
@@ -559,6 +596,18 @@ const styles = StyleSheet.create({
     flex: 1,
     height: '100%',
     ...Typography.callout,
+  },
+  clearButton: {
+    padding: 6,
+    marginRight: 4,
+  },
+  editIconBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 4,
   },
   errorSlot: {
     minHeight: 20,
