@@ -40,13 +40,14 @@ export default function SubfolderScreen() {
   const sectionEnum = section as DocumentSection;
   const isInd = isIndividual === 'true';
 
-  // Fetch documents for the specific categoryId (or section documents if it's an individual folder)
-  const { documents, isLoading, error, refetch } = useDocuments(sectionEnum, isInd ? undefined : categoryId);
+  // Fetch documents for the specific categoryId or individualId
+  const { documents, isLoading, error, refetch } = useDocuments(
+    sectionEnum,
+    isInd ? undefined : categoryId,
+    isInd ? categoryId : undefined
+  );
 
-  // Client-side filter to only show documents ending with " - IndividualName"
-  const filteredDocuments = isInd
-    ? documents.filter((doc) => doc.title && doc.title.endsWith(` - ${categoryName}`))
-    : documents;
+  const filteredDocuments = documents;
 
   const handleShareFolder = useCallback(() => {
     if (!filteredDocuments || filteredDocuments.length === 0) return;
@@ -74,6 +75,7 @@ export default function SubfolderScreen() {
         categoryId: isInd ? undefined : categoryId,
         categoryName: isInd ? undefined : categoryName,
         individualName: isInd ? categoryName : undefined,
+        individualId: isInd ? categoryId : undefined,
       },
     });
   };

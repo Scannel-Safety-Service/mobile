@@ -95,7 +95,7 @@ export function useFileUpload() {
 
   // 3. Upload constructed payload to NestJS backend
   const uploadFile = useCallback(
-    async (section: DocumentSection, title: string, categoryId?: string) => {
+    async (section: DocumentSection, title: string, categoryId?: string, individualId?: string) => {
       if (!selectedFile) {
         setError('No document selected.');
         return false;
@@ -135,6 +135,9 @@ export function useFileUpload() {
         formData.append('title', title.trim());
         if (categoryId) {
           formData.append('categoryId', categoryId);
+        }
+        if (individualId) {
+          formData.append('individualId', individualId);
         }
 
         // Use raw fetch — DO NOT go through apiRequest because spreading RequestInit

@@ -1,7 +1,7 @@
 import React, { useEffect } from 'react';
 import { ActivityIndicator, Alert, LogBox, StyleSheet, View } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
-import { Slot, useRouter, useSegments } from 'expo-router';
+import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
 import 'react-native-reanimated';
@@ -34,6 +34,7 @@ function RootLayoutContent() {
   const { status, initialize } = useAuthStore();
   const router = useRouter();
   const segments = useSegments();
+  const rootNavigationState = useRootNavigationState();
 
   // Bootstrap — read stored tokens and restore session on app launch
   useEffect(() => {
@@ -110,6 +111,7 @@ function RootLayoutContent() {
 
   // Reactive auth guard — redirect based on authentication state
   useEffect(() => {
+    if (!rootNavigationState?.key) return;
     // Wait until we have a definitive status
     if (status === 'idle' || status === 'loading') return;
 
@@ -121,7 +123,7 @@ function RootLayoutContent() {
     } else if (status === 'authenticated' && (inAuthGroup || (!inAppGroup && segments.length > 0))) {
       router.replace('/(app)/(tabs)');
     }
-  }, [status, segments, router]);
+  }, [status, segments, router, rootNavigationState?.key]);
 
   const isLoading = status === 'idle' || status === 'loading';
 

@@ -10,7 +10,7 @@ interface DocumentsState {
   error: string | null;
 
   fetchCategories: (section: DocumentSection) => Promise<void>;
-  fetchDocuments: (section: DocumentSection, categoryId?: string) => Promise<void>;
+  fetchDocuments: (section: DocumentSection, categoryId?: string, individualId?: string) => Promise<void>;
   clearError: () => void;
 }
 
@@ -55,12 +55,15 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
     }
   },
 
-  fetchDocuments: async (section: DocumentSection, categoryId?: string) => {
+  fetchDocuments: async (section: DocumentSection, categoryId?: string, individualId?: string) => {
     set({ isLoading: true, error: null });
     try {
       let url = `/documents?section=${section}`;
       if (categoryId) {
         url += `&categoryId=${categoryId}`;
+      }
+      if (individualId) {
+        url += `&individualId=${individualId}`;
       }
 
       const response = await apiRequest(url);
@@ -80,7 +83,7 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
         }
       }
 
-      const key = `${section}_${categoryId || 'global'}`;
+      const key = `${section}_${categoryId || 'global'}_${individualId || 'global'}`;
       set((state) => ({
         documents: {
           ...state.documents,
@@ -90,7 +93,7 @@ export const useDocumentsStore = create<DocumentsState>((set, get) => ({
         error: null,
       }));
     } catch (err: any) {
-      console.error(`Error fetching documents for ${section} (category: ${categoryId}):`, err);
+      console.error(`Error fetching documents for ${section} (category: ${categoryId}, individual: ${individualId}):`, err);
       set({ error: err.message || 'Error loading documents', isLoading: false });
     }
   },
