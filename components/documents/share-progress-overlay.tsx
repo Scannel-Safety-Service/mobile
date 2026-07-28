@@ -22,11 +22,19 @@ export function ShareProgressOverlay({ progressState, onClose }: ShareProgressOv
   // Determine message to display
   let statusText = 'Processing...';
   if (status === 'downloading') {
-    statusText = `Downloading document ${currentFile} of ${totalFiles}...`;
+    if (progress < 0.15) {
+      statusText = 'Connecting to server...';
+    } else if (progress < 0.45) {
+      statusText = 'Generating ZIP archive on server...';
+    } else if (progress < 0.75) {
+      statusText = 'Downloading ZIP archive...';
+    } else {
+      statusText = 'Saving archive to device...';
+    }
   } else if (status === 'zipping') {
-    statusText = 'Preparing files for zip compression...';
+    statusText = 'Preparing ZIP archive on server...';
   } else if (status === 'sharing') {
-    statusText = 'Opening native email client...';
+    statusText = 'Opening share dialog...';
   } else if (status === 'success') {
     statusText = 'Share completed!';
   } else if (status === 'error') {

@@ -43,11 +43,38 @@ export default function SectionScreen() {
     resetProgress,
   } = useShareDocuments();
 
+  const sectionEnum = section as DocumentSection;
+  const folderDef = PREDEFINED_FOLDERS.find((f) => f.key === section);
+
+  // 1. Fetch categories (if folder has subfolders)
+  const {
+    categories,
+    isLoading: isLoadingCategories,
+    error: categoriesError,
+    refetch: refetchCategories,
+  } = useCategories(folderDef?.hasSubfolders ? sectionEnum : ('' as any));
+
+  // 2. Fetch individuals (if folder has individuals)
+  const {
+    individuals,
+    isLoading: isLoadingIndividuals,
+    error: individualsError,
+    refetch: refetchIndividuals,
+  } = useIndividuals(!!folderDef?.hasIndividuals);
+
+  // 3. Fetch documents (if folder does NOT have subfolders and is not Training Qualifications)
+  const isDirectDocumentSection = folderDef && !folderDef.hasSubfolders && !folderDef.hasIndividuals;
+  const {
+    documents,
+    isLoading: isLoadingDocuments,
+    error: documentsError,
+    refetch: refetchDocuments,
+  } = useDocuments(isDirectDocumentSection ? sectionEnum : ('' as any));
+
   const handleShareFolder = useCallback(() => {
     if (!documents || documents.length === 0) return;
     shareFolderDocuments(documents, folderDef?.label || 'Documents');
   }, [documents, folderDef, shareFolderDocuments]);
-
 
   const handleCreateIndividual = async () => {
     if (!newIndividualName.trim()) {
@@ -82,34 +109,6 @@ export default function SectionScreen() {
       setIsSubmitting(false);
     }
   };
-
-  const sectionEnum = section as DocumentSection;
-  const folderDef = PREDEFINED_FOLDERS.find((f) => f.key === section);
-
-  // 1. Fetch categories (if folder has subfolders)
-  const {
-    categories,
-    isLoading: isLoadingCategories,
-    error: categoriesError,
-    refetch: refetchCategories,
-  } = useCategories(folderDef?.hasSubfolders ? sectionEnum : ('' as any));
-
-  // 2. Fetch individuals (if folder has individuals)
-  const {
-    individuals,
-    isLoading: isLoadingIndividuals,
-    error: individualsError,
-    refetch: refetchIndividuals,
-  } = useIndividuals(!!folderDef?.hasIndividuals);
-
-  // 3. Fetch documents (if folder does NOT have subfolders and is not Training Qualifications)
-  const isDirectDocumentSection = folderDef && !folderDef.hasSubfolders && !folderDef.hasIndividuals;
-  const {
-    documents,
-    isLoading: isLoadingDocuments,
-    error: documentsError,
-    refetch: refetchDocuments,
-  } = useDocuments(isDirectDocumentSection ? sectionEnum : ('' as any));
 
   // Auto-refresh when entering the screen
   useEffect(() => {
