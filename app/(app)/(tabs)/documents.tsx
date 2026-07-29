@@ -12,7 +12,6 @@ export default function DocumentsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
-  const isDark = colorScheme === 'dark';
 
   // Navigate to specific folder view
   const handleFolderPress = useCallback((sectionKey: string) => {
