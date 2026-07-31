@@ -33,6 +33,9 @@ export function decodeJwt(token: string): any {
  */
 export async function syncDeviceToken(): Promise<void> {
   try {
+    const accessToken = await getAccessToken();
+    if (!accessToken) return;
+
     const subscriptionId = await OneSignal.User.pushSubscription.getIdAsync();
     if (!subscriptionId || subscriptionId.startsWith('local-')) return;
 
