@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { ActivityIndicator, Alert, LogBox, StyleSheet, View } from 'react-native';
+import { ActivityIndicator, LogBox, StyleSheet, View } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { Slot, useRouter, useSegments, useRootNavigationState } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
@@ -53,47 +53,24 @@ function RootLayoutContent() {
     // Initialize OneSignal SDK with the provided App ID
     OneSignal.initialize('16d2ca85-5df6-4115-87d5-7370f45727f0'); // env
 
-    let alertShown = false;
+    let permissionRequested = false;
 
-    const requestPermissionAndRegister = () => {
-      OneSignal.Notifications.requestPermission(true);
-    };
-
-    const checkSubscriptionId = async (id?: string | null) => {
-      if (id && !id.startsWith('local-') && !alertShown) {
-        // Only prompt if the user hasn't already granted notification permissions
+    const checkPermissionAndRequest = async () => {
+      if (!permissionRequested) {
         const hasPermission = await OneSignal.Notifications.getPermissionAsync();
         if (!hasPermission) {
-          alertShown = true;
-          Alert.alert(
-            'Enable Notifications',
-            'Stay updated with real-time safety alerts, document updates, and compliance tasks.',
-            [
-              {
-                text: 'Later',
-                style: 'cancel',
-              },
-              {
-                text: 'Enable',
-                onPress: () => {
-                  requestPermissionAndRegister();
-                },
-              },
-            ]
-          );
+          permissionRequested = true;
+          OneSignal.Notifications.requestPermission(true);
         }
       }
     };
 
-    // Evaluate the subscription status immediately
-    OneSignal.User.pushSubscription.getIdAsync().then((id) => {
-      checkSubscriptionId(id);
-    });
+    // Check and prompt native permission directly if needed
+    checkPermissionAndRequest();
 
     // Setup push subscription observer/listener
     const listener = (event: any) => {
       const id: string | undefined = event.current.id;
-      checkSubscriptionId(id);
       // Sync the new subscription ID to the backend whenever it changes
       if (id && !id.startsWith('local-')) {
         syncDeviceToken().catch((e) =>
