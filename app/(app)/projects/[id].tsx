@@ -1,5 +1,5 @@
 import React, { useEffect, useCallback, useState } from 'react';
-import { StyleSheet, View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { StyleSheet, View, Text, FlatList, Pressable, ActivityIndicator, Alert } from 'react-native';
 import { useLocalSearchParams, useRouter, Stack } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,21 +8,34 @@ import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors, Typography } from '@/constants/theme';
 import { DocumentRow } from '@/components/documents/document-row';
 import { EmptyState } from '@/components/documents/empty-state';
+import { SignatureCanvasModal } from '@/components/documents/signature-canvas-modal';
 import { useViewDocument } from '@/hooks/use-view-document';
+import { useAuthStore } from '@/store/auth-store';
 import { apiRequest } from '@/lib/api';
 import { BackgroundLogo } from '@/components/background-logo';
+import { SignatureStatus, ApprovalStatus } from '@/types/document';
+
+interface AssignedUserRef {
+  userId: string;
+  signatureStatus: SignatureStatus;
+  approvalStatus: ApprovalStatus;
+  rejectionReason?: string | null;
+}
+
+interface ProjectDocumentItem {
+  id: string;
+  title: string;
+  originalFileName: string;
+  fileUrl: string;
+  section: string;
+  createdAt: string;
+  assignedUsers?: AssignedUserRef[];
+}
 
 interface ProjectFolder {
   id: string;
   name: string;
-  documents: {
-    id: string;
-    title: string;
-    originalFileName: string;
-    fileUrl: string;
-    section: string;
-    createdAt: string;
-  }[];
+  documents: ProjectDocumentItem[];
 }
 
 interface ProjectDetails {
@@ -39,11 +52,17 @@ export default function ProjectDetailScreen() {
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
   const insets = useSafeAreaInsets();
+  const { user } = useAuthStore();
 
   const [projectDetails, setProjectDetails] = useState<ProjectDetails | null>(null);
   const [activeFolderId, setActiveFolderId] = useState<string | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Signing modal state
+  const [signingModalVisible, setSigningModalVisible] = useState(false);
+  const [targetSigningDoc, setTargetSigningDoc] = useState<{ id: string; title: string } | null>(null);
+  const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
 
   const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
 
@@ -76,6 +95,42 @@ export default function ProjectDetailScreen() {
   const handleFolderPress = (folderId: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     setActiveFolderId((prev) => (prev === folderId ? null : folderId));
+  };
+
+  const handleOpenSignModal = useCallback((docId: string, title: string) => {
+    setTargetSigningDoc({ id: docId, title });
+    setSigningModalVisible(true);
+  }, []);
+
+  const handleSubmitSignature = async (base64Signature: string) => {
+    if (!targetSigningDoc) return;
+    try {
+      setIsSubmittingSignature(true);
+      const response = await apiRequest(`/documents/${targetSigningDoc.id}/sign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          signatureDataUrl: base64Signature,
+          deviceInfo: JSON.stringify({ platform: 'mobile' }),
+        }),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.message || 'Failed to submit signature');
+      }
+
+      setSigningModalVisible(false);
+      setTargetSigningDoc(null);
+
+      // Refresh project folders to update status badge
+      fetchProjectDetails();
+      Alert.alert('Success', 'Your digital signature has been embedded into the PDF document.');
+    } catch (err: any) {
+      Alert.alert('Signing Failed', err.message || 'Unable to submit signature. Please try again.');
+    } finally {
+      setIsSubmittingSignature(false);
+    }
   };
 
   const activeFolder = projectDetails?.folders?.find((f) => f.id === activeFolderId);
@@ -135,15 +190,22 @@ export default function ProjectDetailScreen() {
             keyExtractor={(item) => item.id}
             contentContainerStyle={[styles.listContent, { paddingBottom: 80 + Math.max(insets.bottom, 16) }]}
             showsVerticalScrollIndicator={false}
-            renderItem={({ item }) => (
-              <DocumentRow
-                id={item.id}
-                title={item.title || item.originalFileName}
-                fileName={item.originalFileName}
-                createdAt={item.createdAt}
-                onPress={() => handleDocumentPress(item.fileUrl, item.originalFileName)}
-              />
-            )}
+            renderItem={({ item }) => {
+              const myAssignment = item.assignedUsers?.find((a) => a.userId === user?.id);
+              return (
+                <DocumentRow
+                  id={item.id}
+                  title={item.title || item.originalFileName}
+                  fileName={item.originalFileName}
+                  createdAt={item.createdAt}
+                  signatureStatus={myAssignment?.signatureStatus}
+                  approvalStatus={myAssignment?.approvalStatus}
+                  rejectionReason={myAssignment?.rejectionReason}
+                  onPress={() => handleDocumentPress(item.fileUrl, item.originalFileName)}
+                  onSignPress={(id, title) => handleOpenSignModal(id, title)}
+                />
+              );
+            }}
             ListEmptyComponent={
               <EmptyState
                 title={`No Documents in ${activeFolder.name}`}
@@ -153,7 +215,7 @@ export default function ProjectDetailScreen() {
           />
         </View>
       ) : (
-        /* List of 13 Pre-seeded Project Folders */
+        /* List of Project Folders */
         <FlatList
           data={projectDetails.folders}
           keyExtractor={(item) => item.id}
@@ -172,6 +234,12 @@ export default function ProjectDetailScreen() {
           }
           renderItem={({ item }) => {
             const docCount = item.documents?.length || 0;
+            const pendingMySignatures = item.documents?.filter((doc) =>
+              doc.assignedUsers?.some(
+                (a) => a.userId === user?.id && (a.signatureStatus === 'PENDING' || a.approvalStatus === 'REJECTED')
+              )
+            ).length || 0;
+
             return (
               <Pressable
                 onPress={() => handleFolderPress(item.id)}
@@ -179,7 +247,9 @@ export default function ProjectDetailScreen() {
                   styles.folderRow,
                   {
                     backgroundColor: isDark ? 'rgba(8, 23, 41, 0.65)' : 'rgba(255, 255, 255, 0.65)',
-                    borderColor: isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.75)',
+                    borderColor: pendingMySignatures > 0
+                      ? (isDark ? 'rgba(245,158,11,0.5)' : '#fde68a')
+                      : (isDark ? 'rgba(255, 255, 255, 0.1)' : 'rgba(255, 255, 255, 0.75)'),
                   },
                   pressed && styles.pressed,
                 ]}
@@ -192,15 +262,35 @@ export default function ProjectDetailScreen() {
                     <Text style={[styles.folderNameText, { color: colors.text }]} numberOfLines={1}>
                       {item.name}
                     </Text>
-                    <Text style={[styles.docCountText, { color: colors.muted }]}>
-                      {docCount} document(s)
-                    </Text>
+                    <View style={styles.folderMetaRow}>
+                      <Text style={[styles.docCountText, { color: colors.muted }]}>
+                        {docCount} document(s)
+                      </Text>
+                      {pendingMySignatures > 0 && (
+                        <View style={styles.folderPendingBadge}>
+                          <Text style={styles.folderPendingText}>
+                            {pendingMySignatures} Needs Signature
+                          </Text>
+                        </View>
+                      )}
+                    </View>
                   </View>
                 </View>
                 <Ionicons name="chevron-forward" size={18} color={colors.muted} />
               </Pressable>
             );
           }}
+        />
+      )}
+
+      {/* Signature Canvas Modal */}
+      {targetSigningDoc && (
+        <SignatureCanvasModal
+          visible={signingModalVisible}
+          documentTitle={targetSigningDoc.title}
+          onClose={() => setSigningModalVisible(false)}
+          onSign={handleSubmitSignature}
+          isSubmitting={isSubmittingSignature}
         />
       )}
 
@@ -217,7 +307,6 @@ export default function ProjectDetailScreen() {
               </Text>
             )}
           </View>
-
         </View>
       )}
     </View>
@@ -337,9 +426,26 @@ const styles = StyleSheet.create({
     ...Typography.callout,
     fontWeight: '700',
   },
+  folderMetaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+  },
   docCountText: {
     ...Typography.caption1,
     fontWeight: '500',
+  },
+  folderPendingBadge: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  folderPendingText: {
+    fontSize: 10,
+    fontWeight: '700',
+    color: '#b45309',
   },
   downloadOverlay: {
     ...StyleSheet.absoluteFillObject,
@@ -353,7 +459,6 @@ const styles = StyleSheet.create({
     borderRadius: 24,
     alignItems: 'center',
     gap: 12,
-    elevation: 5,
     minWidth: 200,
   },
   downloadText: {

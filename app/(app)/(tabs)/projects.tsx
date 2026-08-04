@@ -1,51 +1,54 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, View, Text, FlatList, RefreshControl, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  View,
+  Text,
+  FlatList,
+  RefreshControl,
+  ActivityIndicator,
+  Alert,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, useFocusEffect } from 'expo-router';
+import { Ionicons } from '@expo/vector-icons';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors, Typography } from '@/constants/theme';
 import { BackgroundLogo } from '@/components/background-logo';
-import { ProjectCard } from '@/components/projects/project-card';
+import { DocumentRow } from '@/components/documents/document-row';
+import { SignatureCanvasModal } from '@/components/documents/signature-canvas-modal';
+import { useViewDocument } from '@/hooks/use-view-document';
 import { apiRequest } from '@/lib/api';
-
-interface ProjectItem {
-  id: string;
-  name: string;
-  year: number;
-  companyId: string;
-  createdAt: string;
-}
+import { DocumentAssignment } from '@/types/document';
 
 export default function ProjectsScreen() {
   const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
+  const isDark = colorScheme === 'dark';
 
-  const [projects, setProjects] = useState<ProjectItem[]>([]);
+  // Assigned documents state
+  const [assignedDocs, setAssignedDocs] = useState<DocumentAssignment[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  const fetchAssignedProjects = useCallback(async () => {
+  // Signature modal state
+  const [signingModalVisible, setSigningModalVisible] = useState(false);
+  const [targetSigningDoc, setTargetSigningDoc] = useState<{ id: string; title: string } | null>(null);
+  const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
+
+  const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
+
+  const fetchAssignedDocuments = useCallback(async () => {
     try {
       setError(null);
-      const res = await apiRequest('/projects/my-assigned');
-      if (!res.ok) {
-        throw new Error('Failed to load assigned projects');
-      }
+      const res = await apiRequest('/documents/my-assigned');
+      if (!res.ok) throw new Error('Failed to load assigned documents');
       const data = await res.json();
-      const grouped = data?.data?.projectsByYear || {};
-      
-      // Flatten projects by year sorted desc
-      const allProjects: ProjectItem[] = [];
-      const years = Object.keys(grouped).sort((a, b) => b.localeCompare(a));
-      years.forEach((yr) => {
-        allProjects.push(...(grouped[yr] || []));
-      });
-
-      setProjects(allProjects);
+      setAssignedDocs(data?.data || []);
     } catch (err: any) {
-      setError(err.message || 'Unable to fetch projects');
+      console.error('Error loading assigned documents:', err);
+      setError(err.message || 'Unable to fetch assigned documents');
     } finally {
       setIsLoading(false);
       setRefreshing(false);
@@ -54,32 +57,61 @@ export default function ProjectsScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      fetchAssignedProjects();
-    }, [fetchAssignedProjects])
+      fetchAssignedDocuments();
+    }, [fetchAssignedDocuments])
   );
 
   const handleRefresh = () => {
     setRefreshing(true);
-    fetchAssignedProjects();
+    fetchAssignedDocuments();
   };
 
-  const handleProjectPress = useCallback((projectId: string) => {
-    router.push({
-      pathname: '/(app)/projects/[id]',
-      params: { id: projectId },
-    });
-  }, [router]);
+  const handleDocumentView = useCallback(
+    (fileUrl: string, fileName: string) => {
+      viewDocument(fileUrl, fileName);
+    },
+    [viewDocument]
+  );
 
-  const renderItem = useCallback(({ item }: { item: ProjectItem }) => {
-    return (
-      <ProjectCard
-        id={item.id}
-        name={item.name}
-        year={item.year}
-        onPress={() => handleProjectPress(item.id)}
-      />
-    );
-  }, [handleProjectPress]);
+  const handleOpenSignModal = useCallback((docId: string, title: string) => {
+    setTargetSigningDoc({ id: docId, title });
+    setSigningModalVisible(true);
+  }, []);
+
+  const handleSubmitSignature = async (base64Signature: string) => {
+    if (!targetSigningDoc) return;
+    try {
+      setIsSubmittingSignature(true);
+      const response = await apiRequest(`/documents/${targetSigningDoc.id}/sign`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          signatureDataUrl: base64Signature,
+          deviceInfo: JSON.stringify({ platform: 'mobile' }),
+        }),
+      });
+
+      const resData = await response.json();
+      if (!response.ok) {
+        throw new Error(resData.message || 'Failed to submit signature');
+      }
+
+      setSigningModalVisible(false);
+      setTargetSigningDoc(null);
+
+      // Refresh list to update status badge to SIGNED
+      fetchAssignedDocuments();
+      Alert.alert('Success', 'Your digital signature has been embedded into the PDF document.');
+    } catch (err: any) {
+      Alert.alert('Signing Failed', err.message || 'Unable to submit signature. Please try again.');
+    } finally {
+      setIsSubmittingSignature(false);
+    }
+  };
+
+  const pendingCount = assignedDocs.filter(
+    (a) => a.signatureStatus === 'PENDING' || a.approvalStatus === 'REJECTED'
+  ).length;
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -88,32 +120,44 @@ export default function ProjectsScreen() {
       <SafeAreaView edges={['top', 'left', 'right']} style={styles.safeArea}>
         {/* Header */}
         <View style={styles.header}>
-          <Text style={[styles.title, { color: colors.text }]}>My Projects</Text>
+          <View style={styles.titleRow}>
+            <Text style={[styles.title, { color: colors.text }]}>Assigned Documents</Text>
+            {pendingCount > 0 && (
+              <View style={styles.pendingPill}>
+                <Text style={styles.pendingPillText}>{pendingCount} Pending</Text>
+              </View>
+            )}
+          </View>
           <Text style={[styles.subtitle, { color: colors.muted }]}>
-            Assigned projects and safety compliance folders
+            Review and sign your required safety compliance documents
           </Text>
         </View>
 
+        {/* Assigned Documents List */}
         {isLoading && !refreshing ? (
           <View style={styles.centerContainer}>
             <ActivityIndicator size="large" color={colors.primary} />
-            <Text style={[styles.loadingText, { color: colors.muted }]}>Loading assigned projects...</Text>
+            <Text style={[styles.loadingText, { color: colors.muted }]}>
+              Loading assigned documents...
+            </Text>
           </View>
         ) : error ? (
           <View style={styles.centerContainer}>
             <Text style={[styles.errorText, { color: colors.danger }]}>{error}</Text>
           </View>
-        ) : projects.length === 0 ? (
+        ) : assignedDocs.length === 0 ? (
           <View style={styles.centerContainer}>
-            <Text style={[styles.emptyTitle, { color: colors.text }]}>No Projects Assigned</Text>
+            <Ionicons name="document-text-outline" size={44} color={colors.muted} />
+            <Text style={[styles.emptyTitle, { color: colors.text }]}>
+              No Documents Assigned
+            </Text>
             <Text style={[styles.emptySubtitle, { color: colors.muted }]}>
-              You have not been assigned to any safety projects yet.
+              You currently have no compliance documents assigned for signature.
             </Text>
           </View>
         ) : (
           <FlatList
-            data={projects}
-            renderItem={renderItem}
+            data={assignedDocs}
             keyExtractor={(item) => item.id}
             contentContainerStyle={styles.listContent}
             showsVerticalScrollIndicator={false}
@@ -124,9 +168,65 @@ export default function ProjectsScreen() {
                 tintColor={colors.primary}
               />
             }
+            renderItem={({ item }) => {
+              const doc = item.document;
+              if (!doc) return null;
+              return (
+                <DocumentRow
+                  id={doc.id}
+                  title={doc.title || doc.originalFileName}
+                  fileName={doc.originalFileName}
+                  createdAt={item.assignedAt}
+                  signatureStatus={item.signatureStatus}
+                  approvalStatus={item.approvalStatus}
+                  rejectionReason={item.rejectionReason}
+                  projectName={doc.project?.name}
+                  folderName={doc.folder?.name}
+                  onPress={() => handleDocumentView(doc.fileUrl, doc.originalFileName)}
+                  onSignPress={(id, title) => handleOpenSignModal(id, title)}
+                />
+              );
+            }}
           />
         )}
       </SafeAreaView>
+
+      {/* Signature Canvas Modal */}
+      {targetSigningDoc && (
+        <SignatureCanvasModal
+          visible={signingModalVisible}
+          documentTitle={targetSigningDoc.title}
+          onClose={() => setSigningModalVisible(false)}
+          onSign={handleSubmitSignature}
+          isSubmitting={isSubmittingSignature}
+        />
+      )}
+
+      {/* Downloading Overlay */}
+      {isDownloading && (
+        <View style={styles.downloadOverlay}>
+          <View
+            style={[
+              styles.downloadCard,
+              {
+                backgroundColor: isDark ? '#0f2338' : '#ffffff',
+                borderColor: colors.cardBorder,
+                borderWidth: 1,
+              },
+            ]}
+          >
+            <ActivityIndicator size="large" color={colors.primary} />
+            <Text style={[styles.downloadText, { color: colors.text }]}>
+              Opening Document...
+            </Text>
+            {downloadProgress > 0 && (
+              <Text style={[styles.downloadProgressText, { color: colors.muted }]}>
+                {Math.round(downloadProgress * 100)}%
+              </Text>
+            )}
+          </View>
+        </View>
+      )}
     </View>
   );
 }
@@ -142,8 +242,14 @@ const styles = StyleSheet.create({
   header: {
     paddingHorizontal: 24,
     paddingTop: 16,
-    paddingBottom: 20,
+    paddingBottom: 16,
     gap: 6,
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: 12,
   },
   title: {
     ...Typography.title1,
@@ -151,6 +257,19 @@ const styles = StyleSheet.create({
   subtitle: {
     ...Typography.subheadline,
     fontWeight: '500',
+  },
+  pendingPill: {
+    backgroundColor: '#fef3c7',
+    paddingHorizontal: 10,
+    paddingVertical: 4,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#fde68a',
+  },
+  pendingPillText: {
+    color: '#b45309',
+    fontSize: 11,
+    fontWeight: '700',
   },
   listContent: {
     paddingHorizontal: 20,
@@ -181,5 +300,26 @@ const styles = StyleSheet.create({
     ...Typography.subheadline,
     textAlign: 'center',
     lineHeight: 20,
+  },
+  downloadOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: 'rgba(0, 0, 0, 0.4)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 999,
+  },
+  downloadCard: {
+    padding: 24,
+    borderRadius: 24,
+    alignItems: 'center',
+    gap: 12,
+    minWidth: 200,
+  },
+  downloadText: {
+    ...Typography.subheadline,
+    fontWeight: '600',
+  },
+  downloadProgressText: {
+    ...Typography.footnote,
   },
 });

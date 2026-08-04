@@ -4,6 +4,7 @@ import { Ionicons } from '@expo/vector-icons';
 import * as Haptics from 'expo-haptics';
 import { useColorScheme } from '@/hooks/use-color-scheme';
 import { Colors, Typography } from '@/constants/theme';
+import { SignatureStatus, ApprovalStatus } from '@/types/document';
 
 interface DocumentRowProps {
   id: string;
@@ -11,9 +12,14 @@ interface DocumentRowProps {
   fileName: string;
   createdAt: string;
   onPress: (id: string, fileName: string) => void;
+  signatureStatus?: SignatureStatus;
+  approvalStatus?: ApprovalStatus;
+  rejectionReason?: string | null;
+  onSignPress?: (id: string, title: string) => void;
+  projectName?: string;
+  folderName?: string;
 }
 
-// Hoist date formatter to module scope to avoid re-creation in render calls
 const dateFormatter = new Intl.DateTimeFormat('en-GB', {
   day: '2-digit',
   month: 'short',
@@ -26,6 +32,12 @@ export const DocumentRow = memo(function DocumentRow({
   fileName,
   createdAt,
   onPress,
+  signatureStatus,
+  approvalStatus,
+  rejectionReason,
+  onSignPress,
+  projectName,
+  folderName,
 }: DocumentRowProps) {
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
@@ -36,8 +48,22 @@ export const DocumentRow = memo(function DocumentRow({
     onPress(id, fileName);
   };
 
+  const handleSignClick = (e: any) => {
+    e.stopPropagation();
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+    if (onSignPress) {
+      onSignPress(id, title || fileName);
+    } else {
+      onPress(id, fileName);
+    }
+  };
+
   const displayName = title || fileName;
   const formattedDate = dateFormatter.format(new Date(createdAt));
+
+  const isPendingSignature = signatureStatus === 'PENDING' || approvalStatus === 'REJECTED';
+  const isApproved = approvalStatus === 'APPROVED';
+  const isSignedPendingReview = signatureStatus === 'SIGNED' && approvalStatus === 'PENDING';
 
   return (
     <Pressable
@@ -45,30 +71,120 @@ export const DocumentRow = memo(function DocumentRow({
       style={({ pressed }) => [
         styles.container,
         {
-          backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
-          borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
+          backgroundColor: isDark ? 'rgba(8,23,41,0.75)' : 'rgba(255,255,255,0.9)',
+          borderColor: isPendingSignature
+            ? (isDark ? 'rgba(245,158,11,0.5)' : '#fde68a')
+            : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)'),
           transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}
     >
       <View style={styles.leftSection}>
-        <View style={[styles.iconContainer, { backgroundColor: isDark ? 'rgba(61,22,25,0.6)' : '#fef2f2' }]}>
-          <Ionicons name="document-text" size={22} color="#ef4444" />
+        <View
+          style={[
+            styles.iconContainer,
+            {
+              backgroundColor: isPendingSignature
+                ? (isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7')
+                : isApproved
+                ? (isDark ? 'rgba(16,185,129,0.15)' : '#d1fae5')
+                : (isDark ? 'rgba(59,130,246,0.15)' : '#eff6ff'),
+            },
+          ]}
+        >
+          <Ionicons
+            name={
+              isPendingSignature
+                ? 'pencil-sharp'
+                : isApproved
+                ? 'checkmark-done-circle'
+                : 'document-text'
+            }
+            size={22}
+            color={
+              isPendingSignature
+                ? '#d97706'
+                : isApproved
+                ? '#10b981'
+                : '#3b82f6'
+            }
+          />
         </View>
+
         <View style={styles.textContainer}>
           <Text style={[styles.title, { color: colors.text }]} numberOfLines={1}>
             {displayName}
           </Text>
-          <View style={styles.dateRow}>
-            <Ionicons name="time-outline" size={12} color={colors.muted} />
-            <Text style={[styles.date, { color: colors.muted }]}>
-              {formattedDate}
+
+          {(projectName || folderName) && (
+            <Text style={[styles.locationText, { color: colors.muted }]} numberOfLines={1}>
+              {[projectName, folderName].filter(Boolean).join(' • ')}
             </Text>
+          )}
+
+          <View style={styles.badgeAndDateRow}>
+            <View style={styles.dateRow}>
+              <Ionicons name="time-outline" size={12} color={colors.muted} />
+              <Text style={[styles.date, { color: colors.muted }]}>
+                {formattedDate}
+              </Text>
+            </View>
+
+            {/* Signature Status Badges */}
+            {isPendingSignature && (
+              <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : '#fef3c7' }]}>
+                <View style={[styles.dot, { backgroundColor: '#f59e0b' }]} />
+                <Text style={[styles.statusText, { color: isDark ? '#fbbf24' : '#b45309' }]}>
+                  {approvalStatus === 'REJECTED' ? 'Re-sign Required' : 'Signature Required'}
+                </Text>
+              </View>
+            )}
+
+            {isSignedPendingReview && (
+              <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(59,130,246,0.2)' : '#dbeafe' }]}>
+                <View style={[styles.dot, { backgroundColor: '#3b82f6' }]} />
+                <Text style={[styles.statusText, { color: isDark ? '#93c5fd' : '#1d4ed8' }]}>
+                  Awaiting Review
+                </Text>
+              </View>
+            )}
+
+            {isApproved && (
+              <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5' }]}>
+                <Ionicons name="checkmark-circle" size={12} color="#10b981" />
+                <Text style={[styles.statusText, { color: isDark ? '#6ee7b7' : '#047857' }]}>
+                  Approved
+                </Text>
+              </View>
+            )}
           </View>
+
+          {approvalStatus === 'REJECTED' && rejectionReason && (
+            <Text style={styles.rejectionReasonText} numberOfLines={1}>
+              Reason: {rejectionReason}
+            </Text>
+          )}
         </View>
       </View>
-      <View style={[styles.viewBadge, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
-        <Ionicons name="eye-outline" size={16} color={colors.primary} />
+
+      <View style={styles.rightSection}>
+        {isPendingSignature ? (
+          <Pressable
+            onPress={handleSignClick}
+            style={({ pressed }) => [
+              styles.signActionButton,
+              { backgroundColor: colors.primary },
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Ionicons name="create-outline" size={14} color="#ffffff" />
+            <Text style={styles.signActionText}>Sign</Text>
+          </Pressable>
+        ) : (
+          <View style={[styles.viewBadge, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
+            <Ionicons name="eye-outline" size={16} color={colors.primary} />
+          </View>
+        )}
       </View>
     </Pressable>
   );
@@ -80,7 +196,7 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'space-between',
     padding: 14,
-    borderWidth: 1,
+    borderWidth: 1.2,
     borderRadius: 18,
     borderCurve: 'continuous',
     marginVertical: 5,
@@ -89,25 +205,36 @@ const styles = StyleSheet.create({
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 14,
+    gap: 12,
     flex: 1,
-    marginRight: 12,
+    marginRight: 10,
   },
   iconContainer: {
-    width: 48,
-    height: 48,
-    borderRadius: 14,
+    width: 44,
+    height: 44,
+    borderRadius: 13,
     borderCurve: 'continuous',
     justifyContent: 'center',
     alignItems: 'center',
   },
   textContainer: {
     flex: 1,
-    gap: 5,
+    gap: 3,
   },
   title: {
     ...Typography.subheadline,
-    fontWeight: '600',
+    fontWeight: '700',
+  },
+  locationText: {
+    ...Typography.caption2,
+    fontWeight: '500',
+  },
+  badgeAndDateRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    marginTop: 2,
+    flexWrap: 'wrap',
   },
   dateRow: {
     flexDirection: 'row',
@@ -118,6 +245,33 @@ const styles = StyleSheet.create({
     ...Typography.caption1,
     fontWeight: '500',
   },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 5,
+    paddingHorizontal: 8,
+    paddingVertical: 2.5,
+    borderRadius: 8,
+  },
+  dot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  statusText: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  rejectionReasonText: {
+    fontSize: 11,
+    fontWeight: '600',
+    color: '#ef4444',
+    marginTop: 2,
+  },
+  rightSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
   viewBadge: {
     width: 36,
     height: 36,
@@ -125,16 +279,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  shareBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  rightSection: {
+  signActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 8,
+    gap: 4,
+    paddingHorizontal: 14,
+    paddingVertical: 8,
+    borderRadius: 12,
+  },
+  signActionText: {
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: '700',
   },
 });
