@@ -35,6 +35,16 @@ export interface Document {
 export type SignatureStatus = 'PENDING' | 'SIGNED' | 'DECLINED';
 export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
 
+export interface DocumentAttachment {
+  id: string;
+  fileUrl: string;
+  originalFileName: string;
+  fileSize: number;
+  mimeType: string;
+  createdAt: string;
+  uploadedBy?: { id: string; name: string; role: string } | null;
+}
+
 export interface DocumentAssignment {
   id: string;
   documentId: string;
@@ -51,6 +61,7 @@ export interface DocumentAssignment {
   approvedAt?: string | null;
   rejectionReason?: string | null;
   user?: { id: string; name: string; role: string; email: string } | null;
+  attachments?: DocumentAttachment[];
   document?: Document & {
     project?: { id: string; name: string; year: number } | null;
     folder?: { id: string; name: string } | null;

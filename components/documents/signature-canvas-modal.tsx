@@ -38,12 +38,15 @@ export function SignatureCanvasModal({
   const signatureRef = useRef<SignatureViewRef>(null);
   const [hasDrawn, setHasDrawn] = useState(false);
   const [confirmStep, setConfirmStep] = useState(false);
+  const [successStep, setSuccessStep] = useState(false);
   const [signatureData, setSignatureData] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const handleOK = (signature: string) => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     setSignatureData(signature);
     setConfirmStep(true);
+    setErrorMessage(null);
   };
 
   const handleEmpty = () => {
@@ -60,6 +63,8 @@ export function SignatureCanvasModal({
     setHasDrawn(false);
     setSignatureData(null);
     setConfirmStep(false);
+    setSuccessStep(false);
+    setErrorMessage(null);
   };
 
   const handleUndo = () => {
@@ -74,14 +79,24 @@ export function SignatureCanvasModal({
   const handleConfirmSubmit = async () => {
     if (!signatureData) return;
     try {
+      setErrorMessage(null);
       await onSign(signatureData);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      setConfirmStep(false);
-      setSignatureData(null);
-      setHasDrawn(false);
-    } catch (err) {
+      setSuccessStep(true);
+    } catch (err: any) {
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setErrorMessage(err?.message || 'Unable to submit signature. Please try again.');
     }
+  };
+
+  const handleModalClose = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setConfirmStep(false);
+    setSuccessStep(false);
+    setSignatureData(null);
+    setHasDrawn(false);
+    setErrorMessage(null);
+    onClose();
   };
 
   // Custom styling string passed to react-native-signature-canvas WebView
@@ -106,7 +121,7 @@ export function SignatureCanvasModal({
       visible={visible}
       animationType="slide"
       presentationStyle="pageSheet"
-      onRequestClose={onClose}
+      onRequestClose={handleModalClose}
     >
       <SafeAreaView
         edges={['top', 'bottom', 'left', 'right']}
@@ -123,18 +138,15 @@ export function SignatureCanvasModal({
             </Text>
           </View>
           <Pressable
-            onPress={() => {
-              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-              onClose();
-            }}
+            onPress={handleModalClose}
             style={({ pressed }) => [styles.closeButton, pressed && { opacity: 0.6 }]}
           >
             <Ionicons name="close" size={22} color={colors.text} />
           </Pressable>
         </View>
 
-        {!confirmStep ? (
-          /* Signature Drawing Screen */
+        {!confirmStep && !successStep ? (
+          /* Step 1: Signature Drawing Screen */
           <View style={styles.content}>
             {/* Legal Disclaimer */}
             <View style={[styles.disclaimerCard, { backgroundColor: isDark ? 'rgba(59,130,246,0.08)' : '#f0f9ff', borderColor: isDark ? 'rgba(59,130,246,0.2)' : '#bae6fd' }]}>
@@ -209,7 +221,7 @@ export function SignatureCanvasModal({
               </Pressable>
             </View>
           </View>
-        ) : (
+        ) : confirmStep && !successStep ? (
           /* Step 2: Signature Preview & Final Confirmation */
           <View style={styles.confirmContainer}>
             <Text style={[styles.confirmHeaderTitle, { color: colors.text }]}>Confirm Your Signature</Text>
@@ -226,6 +238,13 @@ export function SignatureCanvasModal({
                 />
               )}
             </View>
+
+            {errorMessage && (
+              <View style={styles.errorCard}>
+                <Ionicons name="alert-circle" size={18} color="#ef4444" />
+                <Text style={styles.errorText}>{errorMessage}</Text>
+              </View>
+            )}
 
             <View style={styles.confirmActionsRow}>
               <Pressable
@@ -259,6 +278,60 @@ export function SignatureCanvasModal({
                 )}
               </Pressable>
             </View>
+          </View>
+        ) : (
+          /* Step 3: Success Confirmation Screen */
+          <View style={styles.successContainer}>
+            <View style={[styles.successIconCircle, { backgroundColor: isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5' }]}>
+              <Ionicons name="checkmark-circle" size={64} color="#10b981" />
+            </View>
+
+            <Text style={[styles.successBadge, { color: '#059669', backgroundColor: isDark ? 'rgba(16, 185, 129, 0.2)' : '#d1fae5' }]}>
+              DIGITAL SIGNATURE RECORDED
+            </Text>
+
+            <Text style={[styles.successHeaderTitle, { color: colors.text }]}>
+              Signature Embedded
+            </Text>
+
+            <Text style={[styles.successHeaderSubtitle, { color: colors.muted }]}>
+              Your digital signature and device timestamp have been attached to this document.
+            </Text>
+
+            <View style={[styles.docSummaryCard, { backgroundColor: isDark ? '#0f2338' : '#f8fafc', borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0' }]}>
+              <View style={styles.docSummaryRow}>
+                <Ionicons name="document-text" size={20} color={colors.primary} />
+                <Text style={[styles.docSummaryTitle, { color: colors.text }]} numberOfLines={1}>
+                  {documentTitle}
+                </Text>
+              </View>
+              <View style={[styles.divider, { backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)' }]} />
+              <View style={styles.docSummaryMetaRow}>
+                <View style={styles.metaItem}>
+                  <Text style={[styles.metaLabel, { color: colors.muted }]}>Status</Text>
+                  <View style={styles.statusBadge}>
+                    <Ionicons name="time" size={12} color="#2563eb" />
+                    <Text style={styles.statusBadgeText}>Pending Review</Text>
+                  </View>
+                </View>
+                <View style={styles.metaItem}>
+                  <Text style={[styles.metaLabel, { color: colors.muted }]}>Time</Text>
+                  <Text style={[styles.metaValue, { color: colors.text }]}>Just now</Text>
+                </View>
+              </View>
+            </View>
+
+            <Pressable
+              onPress={handleModalClose}
+              style={({ pressed }) => [
+                styles.doneButton,
+                { backgroundColor: '#10b981' },
+                pressed && { opacity: 0.85 },
+              ]}
+            >
+              <Ionicons name="checkmark-done-sharp" size={20} color="#ffffff" />
+              <Text style={styles.doneButtonText}>Done</Text>
+            </Pressable>
           </View>
         )}
       </SafeAreaView>
@@ -395,6 +468,22 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     overflow: 'hidden',
   },
+  errorCard: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    padding: 12,
+    borderRadius: 12,
+    backgroundColor: 'rgba(239,68,68,0.1)',
+    borderWidth: 1,
+    borderColor: 'rgba(239,68,68,0.3)',
+  },
+  errorText: {
+    fontSize: 12,
+    color: '#ef4444',
+    fontWeight: '600',
+    flex: 1,
+  },
   confirmActionsRow: {
     flexDirection: 'row',
     gap: 12,
@@ -428,5 +517,109 @@ const styles = StyleSheet.create({
   previewImage: {
     width: '100%',
     height: '100%',
+  },
+  /* Step 3 Success Styles */
+  successContainer: {
+    flex: 1,
+    padding: 28,
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 14,
+  },
+  successIconCircle: {
+    width: 96,
+    height: 96,
+    borderRadius: 48,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: 4,
+  },
+  successBadge: {
+    fontSize: 10,
+    fontWeight: '800',
+    letterSpacing: 0.8,
+    paddingHorizontal: 12,
+    paddingVertical: 4,
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  successHeaderTitle: {
+    fontSize: 22,
+    fontWeight: '800',
+    textAlign: 'center',
+  },
+  successHeaderSubtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+    textAlign: 'center',
+    maxWidth: 300,
+    marginTop: -4,
+  },
+  docSummaryCard: {
+    width: '100%',
+    padding: 16,
+    borderRadius: 16,
+    borderWidth: 1,
+    gap: 12,
+    marginVertical: 10,
+  },
+  docSummaryRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  docSummaryTitle: {
+    fontSize: 14,
+    fontWeight: '700',
+    flex: 1,
+  },
+  divider: {
+    height: 1,
+    width: '100%',
+  },
+  docSummaryMetaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  metaItem: {
+    gap: 2,
+  },
+  metaLabel: {
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  metaValue: {
+    fontSize: 12,
+    fontWeight: '600',
+  },
+  statusBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: 'rgba(37,99,235,0.1)',
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    borderRadius: 6,
+  },
+  statusBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#2563eb',
+  },
+  doneButton: {
+    width: '100%',
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 8,
+    paddingVertical: 16,
+    borderRadius: 14,
+    marginTop: 8,
+  },
+  doneButtonText: {
+    color: '#ffffff',
+    fontSize: 16,
+    fontWeight: '700',
   },
 });

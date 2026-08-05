@@ -9,17 +9,20 @@ import { Colors, Typography } from '@/constants/theme';
 import { DocumentRow } from '@/components/documents/document-row';
 import { EmptyState } from '@/components/documents/empty-state';
 import { SignatureCanvasModal } from '@/components/documents/signature-canvas-modal';
+import { DocumentAttachmentSheet } from '@/components/documents/document-attachment-sheet';
 import { useViewDocument } from '@/hooks/use-view-document';
 import { useAuthStore } from '@/store/auth-store';
 import { apiRequest } from '@/lib/api';
 import { BackgroundLogo } from '@/components/background-logo';
-import { SignatureStatus, ApprovalStatus } from '@/types/document';
+import { SignatureStatus, ApprovalStatus, DocumentAttachment } from '@/types/document';
 
 interface AssignedUserRef {
+  id?: string;
   userId: string;
   signatureStatus: SignatureStatus;
   approvalStatus: ApprovalStatus;
   rejectionReason?: string | null;
+  attachments?: DocumentAttachment[];
 }
 
 interface ProjectDocumentItem {
@@ -64,6 +67,15 @@ export default function ProjectDetailScreen() {
   const [targetSigningDoc, setTargetSigningDoc] = useState<{ id: string; title: string } | null>(null);
   const [isSubmittingSignature, setIsSubmittingSignature] = useState(false);
 
+  // Attachment Sheet State
+  const [attachmentSheetVisible, setAttachmentSheetVisible] = useState(false);
+  const [targetAttachmentDoc, setTargetAttachmentDoc] = useState<{
+    docId: string;
+    assignmentId: string;
+    title: string;
+    attachments: DocumentAttachment[];
+  } | null>(null);
+
   const { viewDocument, isDownloading, downloadProgress } = useViewDocument();
 
   const fetchProjectDetails = useCallback(async () => {
@@ -102,6 +114,16 @@ export default function ProjectDetailScreen() {
     setSigningModalVisible(true);
   }, []);
 
+  const handleOpenAttachSheet = useCallback((docId: string, assignmentId: string, title: string, attachments?: DocumentAttachment[]) => {
+    setTargetAttachmentDoc({
+      docId,
+      assignmentId,
+      title,
+      attachments: attachments || [],
+    });
+    setAttachmentSheetVisible(true);
+  }, []);
+
   const handleSubmitSignature = async (base64Signature: string) => {
     if (!targetSigningDoc) return;
     try {
@@ -120,14 +142,10 @@ export default function ProjectDetailScreen() {
         throw new Error(resData.message || 'Failed to submit signature');
       }
 
-      setSigningModalVisible(false);
-      setTargetSigningDoc(null);
-
       // Refresh project folders to update status badge
       fetchProjectDetails();
-      Alert.alert('Success', 'Your digital signature has been embedded into the PDF document.');
     } catch (err: any) {
-      Alert.alert('Signing Failed', err.message || 'Unable to submit signature. Please try again.');
+      throw err;
     } finally {
       setIsSubmittingSignature(false);
     }
@@ -201,6 +219,9 @@ export default function ProjectDetailScreen() {
                   signatureStatus={myAssignment?.signatureStatus}
                   approvalStatus={myAssignment?.approvalStatus}
                   rejectionReason={myAssignment?.rejectionReason}
+                  attachmentCount={myAssignment?.attachments?.length || 0}
+                  assignmentId={myAssignment?.id}
+                  onAttachPress={myAssignment?.id ? (assignId, docTitle) => handleOpenAttachSheet(item.id, assignId, docTitle, myAssignment.attachments) : undefined}
                   onPress={() => handleDocumentPress(item.fileUrl, item.originalFileName)}
                   onSignPress={(id, title) => handleOpenSignModal(id, title)}
                 />
@@ -215,23 +236,11 @@ export default function ProjectDetailScreen() {
           />
         </View>
       ) : (
-        /* List of Project Folders */
         <FlatList
           data={projectDetails.folders}
           keyExtractor={(item) => item.id}
           contentContainerStyle={[styles.listContent, { paddingBottom: 80 + Math.max(insets.bottom, 16) }]}
           showsVerticalScrollIndicator={false}
-          ListHeaderComponent={
-            <View style={styles.projectHeaderBanner}>
-              <View style={styles.projectInfoRow}>
-                <Ionicons name="business" size={22} color={colors.primary} />
-                <Text style={[styles.bannerTitle, { color: colors.text }]}>{projectDetails.name}</Text>
-              </View>
-              <Text style={[styles.bannerSubtitle, { color: colors.muted }]}>
-                Calendar Year {projectDetails.year} • {projectDetails.folders.length} Compliance Folders
-              </Text>
-            </View>
-          }
           renderItem={({ item }) => {
             const docCount = item.documents?.length || 0;
             const pendingMySignatures = item.documents?.filter((doc) =>
@@ -291,6 +300,19 @@ export default function ProjectDetailScreen() {
           onClose={() => setSigningModalVisible(false)}
           onSign={handleSubmitSignature}
           isSubmitting={isSubmittingSignature}
+        />
+      )}
+
+      {/* Attachment Sheet Modal */}
+      {targetAttachmentDoc && (
+        <DocumentAttachmentSheet
+          isVisible={attachmentSheetVisible}
+          onClose={() => setAttachmentSheetVisible(false)}
+          documentId={targetAttachmentDoc.docId}
+          assignmentId={targetAttachmentDoc.assignmentId}
+          documentTitle={targetAttachmentDoc.title}
+          attachments={targetAttachmentDoc.attachments}
+          onRefresh={fetchProjectDetails}
         />
       )}
 

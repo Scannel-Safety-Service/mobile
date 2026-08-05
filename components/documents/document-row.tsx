@@ -18,6 +18,9 @@ interface DocumentRowProps {
   onSignPress?: (id: string, title: string) => void;
   projectName?: string;
   folderName?: string;
+  attachmentCount?: number;
+  assignmentId?: string;
+  onAttachPress?: (assignmentId: string, title: string) => void;
 }
 
 const dateFormatter = new Intl.DateTimeFormat('en-GB', {
@@ -38,6 +41,9 @@ export const DocumentRow = memo(function DocumentRow({
   onSignPress,
   projectName,
   folderName,
+  attachmentCount,
+  assignmentId,
+  onAttachPress,
 }: DocumentRowProps) {
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
@@ -66,16 +72,14 @@ export const DocumentRow = memo(function DocumentRow({
   const isSignedPendingReview = signatureStatus === 'SIGNED' && approvalStatus === 'PENDING';
 
   return (
-    <Pressable
-      onPress={handlePress}
-      style={({ pressed }) => [
+    <View
+      style={[
         styles.container,
         {
           backgroundColor: isDark ? 'rgba(8,23,41,0.75)' : 'rgba(255,255,255,0.9)',
           borderColor: isPendingSignature
             ? (isDark ? 'rgba(245,158,11,0.5)' : '#fde68a')
             : (isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)'),
-          transform: [{ scale: pressed ? 0.98 : 1 }],
         },
       ]}
     >
@@ -168,7 +172,25 @@ export const DocumentRow = memo(function DocumentRow({
       </View>
 
       <View style={styles.rightSection}>
-        {isPendingSignature ? (
+        <Pressable
+          onPress={() => {
+            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+            onPress(id, fileName);
+          }}
+          style={({ pressed }) => [
+            styles.viewActionButton,
+            {
+              backgroundColor: isDark ? 'rgba(59,130,246,0.18)' : 'rgba(59,130,246,0.1)',
+              borderColor: isDark ? 'rgba(59,130,246,0.35)' : 'rgba(59,130,246,0.25)',
+            },
+            pressed && { opacity: 0.8 },
+          ]}
+        >
+          <Ionicons name="eye-outline" size={14} color={colors.primary} />
+          <Text style={[styles.viewActionText, { color: colors.primary }]}>View</Text>
+        </Pressable>
+
+        {isPendingSignature && (
           <Pressable
             onPress={handleSignClick}
             style={({ pressed }) => [
@@ -180,13 +202,45 @@ export const DocumentRow = memo(function DocumentRow({
             <Ionicons name="create-outline" size={14} color="#ffffff" />
             <Text style={styles.signActionText}>Sign</Text>
           </Pressable>
-        ) : (
-          <View style={[styles.viewBadge, { backgroundColor: isDark ? 'rgba(86,185,255,0.1)' : 'rgba(21,91,157,0.06)' }]}>
-            <Ionicons name="eye-outline" size={16} color={colors.primary} />
-          </View>
+        )}
+
+        {onAttachPress && assignmentId && (
+          <Pressable
+            onPress={(e) => {
+              e.stopPropagation();
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              onAttachPress(assignmentId, title || fileName);
+            }}
+            style={({ pressed }) => [
+              styles.attachActionButton,
+              {
+                backgroundColor: (attachmentCount || 0) > 0
+                  ? (isDark ? 'rgba(59,130,246,0.18)' : '#eff6ff')
+                  : (isDark ? 'rgba(245,158,11,0.12)' : '#fef3c7'),
+                borderColor: (attachmentCount || 0) > 0
+                  ? (isDark ? 'rgba(59,130,246,0.35)' : 'rgba(59,130,246,0.25)')
+                  : (isDark ? 'rgba(245,158,11,0.35)' : '#fde68a'),
+              },
+              pressed && { opacity: 0.8 },
+            ]}
+          >
+            <Ionicons
+              name="attach-outline"
+              size={14}
+              color={(attachmentCount || 0) > 0 ? colors.primary : '#d97706'}
+            />
+            <Text
+              style={[
+                styles.attachActionText,
+                { color: (attachmentCount || 0) > 0 ? colors.primary : (isDark ? '#fbbf24' : '#b45309') },
+              ]}
+            >
+              {attachmentCount ? `${attachmentCount}/5` : '0/5'}
+            </Text>
+          </Pressable>
         )}
       </View>
-    </Pressable>
+    </View>
   );
 });
 
@@ -269,27 +323,52 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
   rightSection: {
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'center',
+    gap: 6,
+    minWidth: 72,
+  },
+  viewActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
-  },
-  viewBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
     justifyContent: 'center',
-    alignItems: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  viewActionText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   signActionButton: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
     gap: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: 12,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
   },
   signActionText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  attachActionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 4,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 8,
+    borderWidth: 1,
+  },
+  attachActionText: {
+    fontSize: 11,
     fontWeight: '700',
   },
 });
