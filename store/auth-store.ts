@@ -94,6 +94,9 @@ export const useAuthStore = create<AuthState>((set) => {
 
           // Access token expired — try to silently refresh
           try {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000);
+
             const response = await fetch(`${API_URL}/auth/refresh`, {
               method: 'POST',
               headers: {
@@ -101,7 +104,9 @@ export const useAuthStore = create<AuthState>((set) => {
                 'x-client-type': 'mobile',
                 Authorization: `Bearer ${refreshToken}`,
               },
+              signal: controller.signal,
             });
+            clearTimeout(timeoutId);
 
             if (response.ok) {
               const result = await response.json();
