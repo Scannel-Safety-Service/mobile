@@ -29,4 +29,42 @@ export interface Document {
   assetId: string | null;
   projectId: string | null;
   folderId: string | null;
+  assignedUsers?: DocumentAssignment[];
+}
+
+export type SignatureStatus = 'PENDING' | 'SIGNED' | 'DECLINED';
+export type ApprovalStatus = 'PENDING' | 'APPROVED' | 'REJECTED';
+
+export interface DocumentAttachment {
+  id: string;
+  fileUrl: string;
+  originalFileName: string;
+  fileSize: number;
+  mimeType: string;
+  createdAt: string;
+  uploadedBy?: { id: string; name: string; role: string } | null;
+}
+
+export interface DocumentAssignment {
+  id: string;
+  documentId: string;
+  userId: string;
+  assignedAt: string;
+  signatureStatus: SignatureStatus;
+  signatureUrl?: string | null;
+  signedAt?: string | null;
+  documentHashAtSign?: string | null;
+  deviceInfo?: string | null;
+  approvalStatus: ApprovalStatus;
+  approvedById?: string | null;
+  approvedBy?: { id: string; name: string; role: string } | null;
+  approvedAt?: string | null;
+  rejectionReason?: string | null;
+  user?: { id: string; name: string; role: string; email: string } | null;
+  attachments?: DocumentAttachment[];
+  document?: Document & {
+    project?: { id: string; name: string; year: number } | null;
+    folder?: { id: string; name: string } | null;
+    company?: { id: string; name: string } | null;
+  };
 }

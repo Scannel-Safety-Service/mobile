@@ -2,10 +2,11 @@ import { useState } from 'react';
 import { Alert } from 'react-native';
 import * as FileSystem from 'expo-file-system/legacy';
 import * as Sharing from 'expo-sharing';
-import { useAuthStore } from '@/store/auth-store';
+import { getAccessToken } from '@/lib/secure-store';
 import { API_URL } from '@/lib/api';
 import { Document } from '@/types/document';
 import { cleanFileName } from '@/lib/file-utils';
+import { useAuthStore } from '@/store/auth-store';
 let MailComposer: any = null;
 try {
   MailComposer = require('expo-mail-composer');
@@ -30,8 +31,7 @@ export function useShareDocuments() {
     errorMessage: null,
   });
 
-  const { accessToken, user } = useAuthStore();
-  const companyName = user?.companyName || 'Scannel';
+  const companyName = useAuthStore((s) => s.user?.companyName) || 'Scannel';
 
   const resetProgress = () => {
     setProgressState({
@@ -65,9 +65,15 @@ export function useShareDocuments() {
       const friendlyLocalTarget = `${FileSystem.cacheDirectory}${friendlyName}`;
 
       const fileInfo = await FileSystem.getInfoAsync(localTarget);
-      const activeToken = useAuthStore.getState().accessToken;
+      const cachedSize = (fileInfo as any).size ?? 0;
 
-      if (!fileInfo.exists) {
+      // Always fetch a fresh token — avoids stale Zustand snapshot after silent refresh
+      const activeToken = await getAccessToken();
+      if (!activeToken) {
+        throw new Error('Your session has expired. Please log in again.');
+      }
+
+      if (!fileInfo.exists || cachedSize === 0) {
         const downloadUrl = `${API_URL}/documents/file/${encodeURIComponent(storageFileName)}`;
         console.log('[Share Hook] Downloading single doc from:', downloadUrl, 'Token prefix:', activeToken ? activeToken.substring(0, 15) : 'null');
         const downloadResumable = FileSystem.createDownloadResumable(
@@ -172,7 +178,11 @@ export function useShareDocuments() {
     });
 
     try {
-      const activeToken = useAuthStore.getState().accessToken;
+      // Always fetch a fresh token — avoids stale Zustand snapshot after silent refresh
+      const activeToken = await getAccessToken();
+      if (!activeToken) {
+        throw new Error('Your session has expired. Please log in again.');
+      }
       const cleanFolderName = cleanFileName(folderName).replace(/[^a-zA-Z0-9-_]/g, '_');
       const zipFileName = `${cleanFolderName}_Documents.zip`;
       const zipUri = `${FileSystem.cacheDirectory}${zipFileName}`;
