@@ -97,7 +97,7 @@ function RootLayoutContent() {
 
     if (status === 'unauthenticated' && !inAuthGroup) {
       router.replace('/(auth)/login');
-    } else if (status === 'authenticated' && (inAuthGroup || (!inAppGroup && segments.length > 0))) {
+    } else if (status === 'authenticated' && !inAppGroup) {
       router.replace('/(app)/(tabs)');
     }
   }, [status, segments, router, rootNavigationState?.key]);
