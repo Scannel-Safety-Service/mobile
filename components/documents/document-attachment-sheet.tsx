@@ -16,6 +16,7 @@ import { Colors, Typography } from '@/constants/theme';
 import { DocumentAttachment } from '@/types/document';
 import { apiRequest } from '@/lib/api';
 import { useViewDocument } from '@/hooks/use-view-document';
+import { useAuthStore } from '@/store/auth-store';
 
 interface DocumentAttachmentSheetProps {
   isVisible: boolean;
@@ -23,6 +24,7 @@ interface DocumentAttachmentSheetProps {
   documentId: string;
   assignmentId: string;
   documentTitle: string;
+  isLocked?: boolean;
   attachments?: DocumentAttachment[];
   onRefresh?: () => void;
 }
@@ -33,14 +35,19 @@ export function DocumentAttachmentSheet({
   documentId,
   assignmentId,
   documentTitle,
+  isLocked = false,
   attachments = [],
   onRefresh,
 }: DocumentAttachmentSheetProps) {
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const isDark = colorScheme === 'dark';
+  const { user } = useAuthStore();
+  const isWorkerOrContractor = user?.role === 'WORKER' || user?.role === 'CONTRACTOR';
+  const isUploadDisabledByLock = isLocked && (isWorkerOrContractor || !user?.role);
 
   const [isUploading, setIsUploading] = useState(false);
+  const [deletingAttachId, setDeletingAttachId] = useState<string | null>(null);
   const [alertState, setAlertState] = useState<{
     type: 'success' | 'warning' | 'error';
     title: string;
@@ -86,7 +93,64 @@ export function DocumentAttachmentSheet({
     return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
   };
 
+  const handleDeleteAttachment = async (attachId: string, fileName: string) => {
+    if (isLocked) {
+      setAlertState({
+        type: 'warning',
+        title: 'Document Locked',
+        message: 'This document is locked by a supervisor. Attachments cannot be deleted.',
+      });
+      return;
+    }
+
+    try {
+      setDeletingAttachId(attachId);
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+
+      const res = await apiRequest(
+        `/documents/${documentId}/assignments/${assignmentId}/attachments/${attachId}`,
+        { method: 'DELETE' }
+      );
+
+      const resData = await res.json();
+      if (!res.ok) {
+        throw new Error(resData.message || 'Failed to delete attachment.');
+      }
+
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      setLocalAttachments((prev) => prev.filter((item) => item.id !== attachId));
+      setAlertState({
+        type: 'success',
+        title: 'Attachment Deleted',
+        message: `"${fileName}" has been removed.`,
+      });
+
+      if (onRefresh) {
+        onRefresh();
+      }
+    } catch (err: any) {
+      console.error('Error deleting attachment:', err);
+      Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+      setAlertState({
+        type: 'error',
+        title: 'Delete Failed',
+        message: err.message || 'Unable to delete attachment.',
+      });
+    } finally {
+      setDeletingAttachId(null);
+    }
+  };
+
   const handlePickAndUpload = async () => {
+    if (isUploadDisabledByLock) {
+      setAlertState({
+        type: 'warning',
+        title: 'Document Locked',
+        message: 'This document has been locked by a supervisor or administrator. No further attachments can be uploaded.',
+      });
+      return;
+    }
+
     if (isMaxReached) {
       setAlertState({
         type: 'warning',
@@ -168,6 +232,16 @@ export function DocumentAttachmentSheet({
 
   const renderAttachmentItem = ({ item }: { item: DocumentAttachment }) => {
     const isImage = item.mimeType?.includes('image') || item.fileUrl.match(/\.(jpg|jpeg|png|webp)$/i);
+    const isDeleting = deletingAttachId === item.id;
+    const canDelete = !isLocked && (
+      !item.uploadedBy ||
+      item.uploadedBy.id === user?.id ||
+      isWorkerOrContractor ||
+      user?.role === 'SUPER_ADMIN' ||
+      user?.role === 'COMPANY_ADMIN' ||
+      user?.role === 'SITE_SUPERVISOR'
+    );
+
     return (
       <Pressable
         onPress={() => viewDocument(item.fileUrl, item.originalFileName)}
@@ -197,10 +271,36 @@ export function DocumentAttachmentSheet({
           </Text>
         </View>
 
-        <Ionicons name="eye-outline" size={18} color={colors.primary} />
+        <View style={styles.actionRow}>
+          <Pressable
+            onPress={() => viewDocument(item.fileUrl, item.originalFileName)}
+            style={({ pressed }) => [styles.itemActionBtn, pressed && { opacity: 0.6 }]}
+          >
+            <Ionicons name="eye-outline" size={18} color={colors.primary} />
+          </Pressable>
+
+          {canDelete && (
+            <Pressable
+              onPress={(e) => {
+                e.stopPropagation();
+                handleDeleteAttachment(item.id, item.originalFileName);
+              }}
+              disabled={isDeleting}
+              style={({ pressed }) => [styles.itemActionBtn, pressed && { opacity: 0.6 }]}
+            >
+              {isDeleting ? (
+                <ActivityIndicator size="small" color="#f43f5e" />
+              ) : (
+                <Ionicons name="trash-outline" size={18} color="#f43f5e" />
+              )}
+            </Pressable>
+          )}
+        </View>
       </Pressable>
     );
   };
+
+  const isButtonDisabled = isUploading || isMaxReached || isUploadDisabledByLock;
 
   return (
     <Modal
@@ -243,8 +343,36 @@ export function DocumentAttachmentSheet({
             </Pressable>
           </View>
 
+          {/* Locked Notice Banner */}
+          {isUploadDisabledByLock && (
+            <View
+              style={[
+                styles.customAlertCard,
+                {
+                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
+                  borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca',
+                },
+              ]}
+            >
+              <View style={styles.customAlertHeader}>
+                <Ionicons name="lock-closed" size={18} color={isDark ? '#fca5a5' : '#ef4444'} />
+                <Text
+                  style={[
+                    styles.customAlertTitle,
+                    { color: isDark ? '#fca5a5' : '#b91c1c' },
+                  ]}
+                >
+                  Document Locked
+                </Text>
+              </View>
+              <Text style={[styles.customAlertMessage, { color: colors.text }]}>
+                This document has been locked by a supervisor or administrator. Additional attachments cannot be uploaded.
+              </Text>
+            </View>
+          )}
+
           {/* Custom Modern Alert Banner */}
-          {alertState && (
+          {alertState && !isUploadDisabledByLock && (
             <View
               style={[
                 styles.customAlertCard,
@@ -357,11 +485,11 @@ export function DocumentAttachmentSheet({
           <View style={styles.footer}>
             <Pressable
               onPress={handlePickAndUpload}
-              disabled={isUploading || isMaxReached}
+              disabled={isButtonDisabled}
               style={({ pressed }) => [
                 styles.uploadButton,
                 {
-                  backgroundColor: isMaxReached ? (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0') : colors.primary,
+                  backgroundColor: isButtonDisabled ? (isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0') : colors.primary,
                   opacity: pressed ? 0.85 : 1,
                 },
               ]}
@@ -371,17 +499,21 @@ export function DocumentAttachmentSheet({
               ) : (
                 <>
                   <Ionicons
-                    name="cloud-upload-outline"
+                    name={isUploadDisabledByLock ? 'lock-closed-outline' : 'cloud-upload-outline'}
                     size={20}
-                    color={isMaxReached ? colors.muted : '#ffffff'}
+                    color={isButtonDisabled ? colors.muted : '#ffffff'}
                   />
                   <Text
                     style={[
                       styles.uploadButtonText,
-                      { color: isMaxReached ? colors.muted : '#ffffff' },
+                      { color: isButtonDisabled ? colors.muted : '#ffffff' },
                     ]}
                   >
-                    {isMaxReached ? 'Maximum 5 Attachments Reached' : 'Upload Attachment'}
+                    {isUploadDisabledByLock
+                      ? 'Document Locked (Read Only)'
+                      : isMaxReached
+                      ? 'Maximum 5 Attachments Reached'
+                      : 'Upload Attachment'}
                   </Text>
                 </>
               )}
@@ -542,5 +674,14 @@ const styles = StyleSheet.create({
     ...Typography.caption1,
     lineHeight: 16,
     marginLeft: 26,
+  },
+  actionRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  itemActionBtn: {
+    padding: 6,
+    borderRadius: 8,
   },
 });

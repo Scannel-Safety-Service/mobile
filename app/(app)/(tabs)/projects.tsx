@@ -77,6 +77,7 @@ export default function ProjectsScreen() {
     docId: string;
     assignmentId: string;
     title: string;
+    isLocked?: boolean;
     attachments: DocumentAttachment[];
   } | null>(null);
 
@@ -210,6 +211,7 @@ export default function ProjectsScreen() {
       docId: assignment.document.id,
       assignmentId: assignment.id,
       title: assignment.document.title || assignment.document.originalFileName,
+      isLocked: assignment.document.isLocked,
       attachments: assignment.attachments || [],
     });
     setAttachmentSheetVisible(true);
@@ -393,6 +395,7 @@ export default function ProjectsScreen() {
                     signatureStatus={item.signatureStatus}
                     approvalStatus={item.approvalStatus}
                     rejectionReason={item.rejectionReason}
+                    isLocked={doc.isLocked}
                     projectName={doc.project?.name}
                     folderName={doc.folder?.name}
                     attachmentCount={item.attachments?.length || 0}
@@ -593,6 +596,7 @@ export default function ProjectsScreen() {
           documentId={targetAttachmentDoc.docId}
           assignmentId={targetAttachmentDoc.assignmentId}
           documentTitle={targetAttachmentDoc.title}
+          isLocked={targetAttachmentDoc.isLocked}
           attachments={targetAttachmentDoc.attachments}
           onRefresh={fetchAssignedDocuments}
         />

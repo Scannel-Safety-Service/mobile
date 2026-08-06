@@ -31,6 +31,7 @@ interface ProjectDocumentItem {
   originalFileName: string;
   fileUrl: string;
   section: string;
+  isLocked?: boolean;
   createdAt: string;
   assignedUsers?: AssignedUserRef[];
 }
@@ -73,6 +74,7 @@ export default function ProjectDetailScreen() {
     docId: string;
     assignmentId: string;
     title: string;
+    isLocked?: boolean;
     attachments: DocumentAttachment[];
   } | null>(null);
 
@@ -114,11 +116,12 @@ export default function ProjectDetailScreen() {
     setSigningModalVisible(true);
   }, []);
 
-  const handleOpenAttachSheet = useCallback((docId: string, assignmentId: string, title: string, attachments?: DocumentAttachment[]) => {
+  const handleOpenAttachSheet = useCallback((docId: string, assignmentId: string, title: string, attachments?: DocumentAttachment[], isLocked?: boolean) => {
     setTargetAttachmentDoc({
       docId,
       assignmentId,
       title,
+      isLocked,
       attachments: attachments || [],
     });
     setAttachmentSheetVisible(true);
@@ -219,9 +222,10 @@ export default function ProjectDetailScreen() {
                   signatureStatus={myAssignment?.signatureStatus}
                   approvalStatus={myAssignment?.approvalStatus}
                   rejectionReason={myAssignment?.rejectionReason}
+                  isLocked={item.isLocked}
                   attachmentCount={myAssignment?.attachments?.length || 0}
                   assignmentId={myAssignment?.id}
-                  onAttachPress={myAssignment?.id ? (assignId, docTitle) => handleOpenAttachSheet(item.id, assignId, docTitle, myAssignment.attachments) : undefined}
+                  onAttachPress={myAssignment?.id ? (assignId, docTitle) => handleOpenAttachSheet(item.id, assignId, docTitle, myAssignment.attachments, item.isLocked) : undefined}
                   onPress={() => handleDocumentPress(item.fileUrl, item.originalFileName)}
                   onSignPress={(id, title) => handleOpenSignModal(id, title)}
                 />
@@ -311,6 +315,7 @@ export default function ProjectDetailScreen() {
           documentId={targetAttachmentDoc.docId}
           assignmentId={targetAttachmentDoc.assignmentId}
           documentTitle={targetAttachmentDoc.title}
+          isLocked={targetAttachmentDoc.isLocked}
           attachments={targetAttachmentDoc.attachments}
           onRefresh={fetchProjectDetails}
         />

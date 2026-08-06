@@ -12,6 +12,7 @@ export interface Document {
   id: string;
   title: string | null;
   description: string | null;
+  isLocked?: boolean;
   isReviewed: boolean;
   reviewedAt: string | null;
   companyId: string;

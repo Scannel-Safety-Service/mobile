@@ -15,6 +15,7 @@ interface DocumentRowProps {
   signatureStatus?: SignatureStatus;
   approvalStatus?: ApprovalStatus;
   rejectionReason?: string | null;
+  isLocked?: boolean;
   onSignPress?: (id: string, title: string) => void;
   projectName?: string;
   folderName?: string;
@@ -38,6 +39,7 @@ export const DocumentRow = memo(function DocumentRow({
   signatureStatus,
   approvalStatus,
   rejectionReason,
+  isLocked,
   onSignPress,
   projectName,
   folderName,
@@ -158,6 +160,15 @@ export const DocumentRow = memo(function DocumentRow({
                 <Ionicons name="checkmark-circle" size={12} color="#10b981" />
                 <Text style={[styles.statusText, { color: isDark ? '#6ee7b7' : '#047857' }]}>
                   Approved
+                </Text>
+              </View>
+            )}
+
+            {isLocked && (
+              <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2' }]}>
+                <Ionicons name="lock-closed" size={12} color={isDark ? '#fca5a5' : '#ef4444'} />
+                <Text style={[styles.statusText, { color: isDark ? '#fca5a5' : '#b91c1c' }]}>
+                  Locked
                 </Text>
               </View>
             )}
