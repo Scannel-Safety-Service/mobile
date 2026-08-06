@@ -2,14 +2,21 @@ import Constants from 'expo-constants';
 import { getAccessToken, getRefreshToken, setTokens, clearCredentials } from './secure-store';
 
 const getBaseUrl = () => {
-  // Try to resolve Metro bundler IP address in development
+  // 1. Prioritize environment variable if set (in .env, eas.json, or build env)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Try to resolve Metro bundler IP address in development
   const debuggerHost = Constants.expoConfig?.hostUri;
   const ip = debuggerHost?.split(':')?.[0];
-  
+
   if (__DEV__ && ip) {
     return `http://${ip}:8000/api/v1`;
   }
-  return 'http://localhost:8000/api/v1'; // Default host, override in production
+
+  // 3. Fallback for standalone builds without explicit API_URL
+  return 'http://localhost:8000/api/v1';
 };
 
 export const API_URL = getBaseUrl();
