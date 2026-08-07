@@ -126,7 +126,12 @@ export function DocumentAttachmentSheet({
   };
 
   const handleDeleteAttachment = async (attachId: string, fileName: string) => {
-    if (isLocked) {
+    const isSupervisorOrAdmin =
+      user?.role === 'SUPER_ADMIN' ||
+      user?.role === 'COMPANY_ADMIN' ||
+      user?.role === 'SITE_SUPERVISOR';
+
+    if (isLocked && !isSupervisorOrAdmin) {
       setAlertState({
         type: 'warning',
         title: 'Document Locked',
@@ -274,14 +279,16 @@ export function DocumentAttachmentSheet({
   const renderAttachmentItem = ({ item }: { item: DocumentAttachment }) => {
     const isImage = item.mimeType?.includes('image') || item.fileUrl.match(/\.(jpg|jpeg|png|webp)$/i);
     const isDeleting = deletingAttachId === item.id;
-    const canDelete = !isLocked && (
-      !item.uploadedBy ||
-      item.uploadedBy.id === user?.id ||
-      isWorkerOrContractor ||
+    const isSupervisorOrAdmin =
       user?.role === 'SUPER_ADMIN' ||
       user?.role === 'COMPANY_ADMIN' ||
-      user?.role === 'SITE_SUPERVISOR'
-    );
+      user?.role === 'SITE_SUPERVISOR';
+
+    const canDelete = isSupervisorOrAdmin || (!isLocked && (
+      !item.uploadedBy ||
+      item.uploadedBy.id === user?.id ||
+      isWorkerOrContractor
+    ));
 
     return (
       <Pressable
