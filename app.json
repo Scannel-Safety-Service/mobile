@@ -4,7 +4,7 @@
     "slug": "safety-tracker-pro",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "safetytrackerpro",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,

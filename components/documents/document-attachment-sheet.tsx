@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useRef } from 'react';
 import {
   StyleSheet,
   View,
@@ -7,6 +7,8 @@ import {
   Pressable,
   FlatList,
   ActivityIndicator,
+  Animated,
+  Easing,
 } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import * as DocumentPicker from 'expo-document-picker';
@@ -80,6 +82,36 @@ export function DocumentAttachmentSheet({
       fetchAttachments();
     }
   }, [isVisible, fetchAttachments]);
+
+  const alertFadeAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (alertState) {
+      alertFadeAnim.setValue(0);
+      Animated.timing(alertFadeAnim, {
+        toValue: 1,
+        duration: 250,
+        easing: Easing.out(Easing.ease),
+        useNativeDriver: true,
+      }).start();
+
+      if (alertState.type === 'success') {
+        const timer = setTimeout(() => {
+          Animated.timing(alertFadeAnim, {
+            toValue: 0,
+            duration: 450,
+            easing: Easing.out(Easing.ease),
+            useNativeDriver: true,
+          }).start(() => {
+            setAlertState(null);
+          });
+        }, 2000);
+        return () => clearTimeout(timer);
+      }
+    } else {
+      alertFadeAnim.setValue(0);
+    }
+  }, [alertState, alertFadeAnim]);
 
   const maxAttachments = 5;
   const currentCount = localAttachments.length;
@@ -186,10 +218,13 @@ export function DocumentAttachmentSheet({
       Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
 
       const formData = new FormData();
+      const fileName = asset.name || 'attachment.pdf';
+      const fileType = asset.mimeType || (fileName.endsWith('.png') ? 'image/png' : fileName.endsWith('.jpg') || fileName.endsWith('.jpeg') ? 'image/jpeg' : 'application/pdf');
+
       formData.append('file', {
         uri: asset.uri,
-        name: asset.name || 'attachment.pdf',
-        type: asset.mimeType || 'application/octet-stream',
+        name: fileName,
+        type: fileType,
       } as any);
 
       const response = await apiRequest(`/documents/${documentId}/assignments/${assignmentId}/attachments`, {
@@ -220,10 +255,16 @@ export function DocumentAttachmentSheet({
     } catch (err: any) {
       console.error('Error uploading attachment:', err);
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Error);
+
+      let errorMessage = err?.message || 'Unable to upload file. Please try again.';
+      if (errorMessage.includes('Network request failed') || errorMessage.includes('TypeError')) {
+        errorMessage = 'Network connection issue. Please check your internet connection and try again.';
+      }
+
       setAlertState({
         type: 'error',
         title: 'Upload Failed',
-        message: err.message || 'Unable to upload file. Please try again.',
+        message: errorMessage,
       });
     } finally {
       setIsUploading(false);
@@ -349,17 +390,17 @@ export function DocumentAttachmentSheet({
               style={[
                 styles.customAlertCard,
                 {
-                  backgroundColor: isDark ? 'rgba(239, 68, 68, 0.15)' : '#fef2f2',
-                  borderColor: isDark ? 'rgba(239, 68, 68, 0.35)' : '#fecaca',
+                  backgroundColor: isDark ? 'rgba(20, 184, 166, 0.15)' : '#ccfbf1',
+                  borderColor: isDark ? 'rgba(20, 184, 166, 0.35)' : '#99f6e4',
                 },
               ]}
             >
               <View style={styles.customAlertHeader}>
-                <Ionicons name="lock-closed" size={18} color={isDark ? '#fca5a5' : '#ef4444'} />
+                <Ionicons name="lock-closed" size={18} color={isDark ? '#2dd4bf' : '#0d9488'} />
                 <Text
                   style={[
                     styles.customAlertTitle,
-                    { color: isDark ? '#fca5a5' : '#b91c1c' },
+                    { color: isDark ? '#5eead4' : '#0f766e' },
                   ]}
                 >
                   Document Locked
@@ -373,10 +414,19 @@ export function DocumentAttachmentSheet({
 
           {/* Custom Modern Alert Banner */}
           {alertState && !isUploadDisabledByLock && (
-            <View
+            <Animated.View
               style={[
                 styles.customAlertCard,
                 {
+                  opacity: alertFadeAnim,
+                  transform: [
+                    {
+                      translateY: alertFadeAnim.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: [-8, 0],
+                      }),
+                    },
+                  ],
                   backgroundColor:
                     alertState.type === 'success'
                       ? (isDark ? 'rgba(16, 185, 129, 0.15)' : '#ecfdf5')
@@ -426,7 +476,14 @@ export function DocumentAttachmentSheet({
                   {alertState.title}
                 </Text>
                 <Pressable
-                  onPress={() => setAlertState(null)}
+                  onPress={() => {
+                    Animated.timing(alertFadeAnim, {
+                      toValue: 0,
+                      duration: 200,
+                      easing: Easing.out(Easing.ease),
+                      useNativeDriver: true,
+                    }).start(() => setAlertState(null));
+                  }}
                   style={({ pressed }) => [styles.alertCloseBtn, pressed && { opacity: 0.6 }]}
                 >
                   <Ionicons name="close-circle" size={18} color={colors.muted} />
@@ -435,7 +492,7 @@ export function DocumentAttachmentSheet({
               <Text style={[styles.customAlertMessage, { color: colors.text }]}>
                 {alertState.message}
               </Text>
-            </View>
+            </Animated.View>
           )}
 
           {/* Slot Progress Bar */}
