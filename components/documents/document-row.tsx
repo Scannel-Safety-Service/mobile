@@ -15,6 +15,7 @@ interface DocumentRowProps {
   signatureStatus?: SignatureStatus;
   approvalStatus?: ApprovalStatus;
   rejectionReason?: string | null;
+  isLocked?: boolean;
   onSignPress?: (id: string, title: string) => void;
   projectName?: string;
   folderName?: string;
@@ -38,6 +39,7 @@ export const DocumentRow = memo(function DocumentRow({
   signatureStatus,
   approvalStatus,
   rejectionReason,
+  isLocked,
   onSignPress,
   projectName,
   folderName,
@@ -90,6 +92,8 @@ export const DocumentRow = memo(function DocumentRow({
             {
               backgroundColor: isPendingSignature
                 ? (isDark ? 'rgba(245,158,11,0.15)' : '#fef3c7')
+                : isLocked
+                ? (isDark ? 'rgba(20,184,166,0.15)' : '#ccfbf1')
                 : isApproved
                 ? (isDark ? 'rgba(16,185,129,0.15)' : '#d1fae5')
                 : (isDark ? 'rgba(59,130,246,0.15)' : '#eff6ff'),
@@ -100,6 +104,8 @@ export const DocumentRow = memo(function DocumentRow({
             name={
               isPendingSignature
                 ? 'pencil-sharp'
+                : isLocked
+                ? 'lock-closed'
                 : isApproved
                 ? 'checkmark-done-circle'
                 : 'document-text'
@@ -108,6 +114,8 @@ export const DocumentRow = memo(function DocumentRow({
             color={
               isPendingSignature
                 ? '#d97706'
+                : isLocked
+                ? (isDark ? '#2dd4bf' : '#0d9488')
                 : isApproved
                 ? '#10b981'
                 : '#3b82f6'
@@ -153,11 +161,20 @@ export const DocumentRow = memo(function DocumentRow({
               </View>
             )}
 
-            {isApproved && (
+            {isApproved && !isLocked && (
               <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#d1fae5' }]}>
                 <Ionicons name="checkmark-circle" size={12} color="#10b981" />
                 <Text style={[styles.statusText, { color: isDark ? '#6ee7b7' : '#047857' }]}>
                   Approved
+                </Text>
+              </View>
+            )}
+
+            {isLocked && (
+              <View style={[styles.statusBadge, { backgroundColor: isDark ? 'rgba(20,184,166,0.2)' : '#ccfbf1' }]}>
+                <Ionicons name="lock-closed" size={12} color={isDark ? '#2dd4bf' : '#0d9488'} />
+                <Text style={[styles.statusText, { color: isDark ? '#5eead4' : '#0f766e' }]}>
+                  Locked
                 </Text>
               </View>
             )}

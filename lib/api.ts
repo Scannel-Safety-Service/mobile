@@ -2,14 +2,21 @@ import Constants from 'expo-constants';
 import { getAccessToken, getRefreshToken, setTokens, clearCredentials } from './secure-store';
 
 const getBaseUrl = () => {
-  // Try to resolve Metro bundler IP address in development
+  // 1. Prioritize environment variable if set (in .env, eas.json, or build env)
+  if (process.env.EXPO_PUBLIC_API_URL) {
+    return process.env.EXPO_PUBLIC_API_URL;
+  }
+
+  // 2. Try to resolve Metro bundler IP address in development
   const debuggerHost = Constants.expoConfig?.hostUri;
   const ip = debuggerHost?.split(':')?.[0];
-  
+
   if (__DEV__ && ip) {
     return `http://${ip}:8000/api/v1`;
   }
-  return 'http://localhost:8000/api/v1'; // Default host, override in production
+
+  // 3. Fallback for standalone builds without explicit API_URL
+  return 'http://localhost:8000/api/v1';
 };
 
 export const API_URL = getBaseUrl();
@@ -75,13 +82,16 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
   // Set default client identifier header
   headers.set('x-client-type', 'mobile');
   
-  const isMultipart = options.body && (
+  const isMultipart = !!options.body && (
     options.body instanceof FormData || 
     (typeof options.body === 'object' && 'append' in (options.body as any)) ||
     (options.body.constructor && options.body.constructor.name === 'FormData')
   );
   
-  if (!headers.has('Content-Type') && !isMultipart) {
+  if (isMultipart) {
+    headers.delete('content-type');
+    headers.delete('Content-Type');
+  } else if (!headers.has('Content-Type')) {
     headers.set('Content-Type', 'application/json');
   }
 
@@ -95,7 +105,9 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
 
   const plainHeaders: Record<string, string> = {};
   headers.forEach((value, key) => {
-    plainHeaders[key] = value;
+    if (!isMultipart || key.toLowerCase() !== 'content-type') {
+      plainHeaders[key] = value;
+    }
   });
 
   const fetchOptions: RequestInit = {
@@ -103,7 +115,35 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
     headers: plainHeaders,
   };
 
-  const response = await fetch(url, fetchOptions);
+  const executeFetch = async (fetchUrl: string, opts: RequestInit, retries = 1): Promise<Response> => {
+    for (let attempt = 0; attempt <= retries; attempt++) {
+      try {
+        return await fetch(fetchUrl, opts);
+      } catch (err: any) {
+        const isNetworkErr =
+          err?.name === 'TypeError' ||
+          (err?.message && String(err.message).toLowerCase().includes('network request failed')) ||
+          (err?.message && String(err.message).toLowerCase().includes('failed to fetch'));
+
+        if (isNetworkErr && attempt < retries) {
+          await new Promise((resolve) => setTimeout(resolve, 800));
+          continue;
+        }
+        throw err;
+      }
+    }
+    throw new Error('Network request failed');
+  };
+
+  let response: Response;
+  try {
+    response = await executeFetch(url, fetchOptions);
+  } catch (err: any) {
+    if (err?.message && String(err.message).includes('Network request failed')) {
+      throw new Error('Network connection issue. Please check your internet connection and try again.');
+    }
+    throw err;
+  }
 
   if (response.status === 401 && !options.skipAuth) {
     // If already refreshing, queue this request
@@ -115,9 +155,11 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
           headers.set('Authorization', `Bearer ${newAccessToken}`);
           const retryHeaders: Record<string, string> = {};
           headers.forEach((value, key) => {
-            retryHeaders[key] = value;
+            if (!isMultipart || key.toLowerCase() !== 'content-type') {
+              retryHeaders[key] = value;
+            }
           });
-          return fetch(url, { ...fetchOptions, headers: retryHeaders });
+          return executeFetch(url, { ...fetchOptions, headers: retryHeaders });
         })
         .catch((error) => {
           throw error;
@@ -134,9 +176,11 @@ export async function apiRequest(path: string, options: RequestOptions = {}): Pr
       headers.set('Authorization', `Bearer ${newAccessToken}`);
       const retryHeaders: Record<string, string> = {};
       headers.forEach((value, key) => {
-        retryHeaders[key] = value;
+        if (!isMultipart || key.toLowerCase() !== 'content-type') {
+          retryHeaders[key] = value;
+        }
       });
-      return await fetch(url, { ...fetchOptions, headers: retryHeaders });
+      return await executeFetch(url, { ...fetchOptions, headers: retryHeaders });
     } catch (refreshError) {
       processQueue(refreshError, null);
       
