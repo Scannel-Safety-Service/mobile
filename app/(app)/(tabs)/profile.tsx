@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { StyleSheet, View, Text, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -8,16 +8,23 @@ import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BackgroundLogo } from '@/components/background-logo';
+import { ChangePasswordModal } from '@/components/change-password-modal';
 
 export default function ProfileScreen() {
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const { user, logout, status } = useAuthStore();
+  const [isChangePasswordOpen, setIsChangePasswordOpen] = useState(false);
 
   const handleLogout = async () => {
     Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
     await logout();
     Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+  };
+
+  const openChangePassword = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsChangePasswordOpen(true);
   };
 
   const isDark = colorScheme === 'dark';
@@ -47,8 +54,6 @@ export default function ProfileScreen() {
             {/* Decorative circles */}
             <View style={[styles.decorCircle1, { backgroundColor: 'rgba(255,255,255,0.05)' }]} />
             <View style={[styles.decorCircle2, { backgroundColor: 'rgba(255,255,255,0.03)' }]} />
-
-
 
             <Text style={styles.userName}>
               {user ? user.name : 'Loading Employee...'}
@@ -97,6 +102,37 @@ export default function ProfileScreen() {
           </View>
         </View>
 
+        {/* Security & Password Section */}
+        <View style={styles.detailsSection}>
+          <Text style={[styles.detailsSectionTitle, { color: colors.muted }]}>SECURITY & PRIVACY</Text>
+
+          <View
+            style={[
+              styles.detailsCard,
+              {
+                backgroundColor: isDark ? 'rgba(8,23,41,0.7)' : 'rgba(255,255,255,0.85)',
+                borderColor: isDark ? 'rgba(15,39,64,0.5)' : 'rgba(226,239,250,0.8)',
+              },
+            ]}
+          >
+            <Pressable
+              onPress={openChangePassword}
+              style={({ pressed }) => [
+                styles.detailItem,
+                pressed && { opacity: 0.7 },
+              ]}
+            >
+              <View style={styles.detailLeft}>
+                <View style={[styles.detailIconCircle, { backgroundColor: isDark ? 'rgba(86,185,255,0.08)' : 'rgba(21,91,157,0.05)' }]}>
+                  <Ionicons name="key-outline" size={20} color={colors.primary} />
+                </View>
+                <Text style={[styles.detailLabel, { color: colors.text }]}>Change Password</Text>
+              </View>
+              <Ionicons name="chevron-forward" size={18} color={colors.muted} />
+            </Pressable>
+          </View>
+        </View>
+
         {/* Logout Action */}
         <View style={styles.actionContainer}>
           <Pressable
@@ -121,6 +157,12 @@ export default function ProfileScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Change Password Modal */}
+      <ChangePasswordModal
+        isOpen={isChangePasswordOpen}
+        onClose={() => setIsChangePasswordOpen(false)}
+      />
       </SafeAreaView>
     </View>
   );
