@@ -12,6 +12,7 @@ import {
   CheckCircle2,
 } from 'lucide-react-native';
 import * as Haptics from 'expo-haptics';
+import { useRouter } from 'expo-router';
 import { Colors, Typography } from '@/constants/theme';
 import { useAuthStore } from '@/store/auth-store';
 import { HelloWave } from '@/components/hello-wave';
@@ -20,6 +21,7 @@ import { apiRequest } from '@/lib/api';
 import { BackgroundLogo } from '@/components/background-logo';
 
 export default function HomeScreen() {
+  const router = useRouter();
   const colorScheme = useColorScheme();
   const colors = colorScheme === 'dark' ? Colors.dark : Colors.light;
   const { user } = useAuthStore();
@@ -247,6 +249,42 @@ export default function HomeScreen() {
             })}
           </View>
 
+          {/* Timesheet Quick Action Card */}
+          <Pressable
+            onPress={() => {
+              triggerFeedback();
+              router.push('/(app)/timesheets' as any);
+            }}
+            style={({ pressed }) => [
+              styles.timesheetBanner,
+              {
+                backgroundColor: isDark ? 'rgba(21, 91, 157, 0.25)' : 'rgba(21, 91, 157, 0.08)',
+                borderColor: colors.primary,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              },
+            ]}
+          >
+            <View style={styles.timesheetBannerLeft}>
+              <View style={[styles.timesheetBannerIcon, { backgroundColor: colors.primary }]}>
+                <Ionicons name="time" size={24} color="#ffffff" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={[styles.timesheetBannerTitle, { color: colors.text }]}>
+                    Weekly Time Sheet
+                  </Text>
+                  <View style={styles.newTag}>
+                    <Text style={styles.newTagText}>NEW</Text>
+                  </View>
+                </View>
+                <Text style={[styles.timesheetBannerSub, { color: colors.muted }]}>
+                  Log daily hours, select projects, and submit for review
+                </Text>
+              </View>
+            </View>
+            <Ionicons name="chevron-forward" size={20} color={colors.primary} />
+          </Pressable>
+
           {/* Safety Notice Footer Banner */}
           <View
             style={[
@@ -413,6 +451,51 @@ const styles = StyleSheet.create({
   statLabel: {
     ...Typography.footnote,
     fontWeight: '500',
+  },
+
+  /* ── Timesheet Banner ── */
+  timesheetBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1.2,
+    borderRadius: 20,
+    borderCurve: 'continuous',
+    padding: 16,
+    marginBottom: 16,
+  },
+  timesheetBannerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    flex: 1,
+  },
+  timesheetBannerIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  timesheetBannerTitle: {
+    ...Typography.headline,
+    fontWeight: '800',
+  },
+  timesheetBannerSub: {
+    ...Typography.footnote,
+    marginTop: 2,
+  },
+  newTag: {
+    backgroundColor: '#10b981',
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+    borderRadius: 6,
+  },
+  newTagText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+    letterSpacing: 0.5,
   },
 
   /* ── Notice Banner ── */
