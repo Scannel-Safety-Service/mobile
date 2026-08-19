@@ -136,14 +136,14 @@ export default function TimesheetDetailScreen() {
         {/* Status Card Banner */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.bannerTop}>
-            <div>
+            <View>
               <Text style={[styles.weekRange, { color: colors.text }]}>
                 {formatDate(timesheet.weekStartDate)} &ndash; {formatDate(timesheet.weekEndDate)}
               </Text>
               <Text style={[styles.submittedMeta, { color: colors.muted }]}>
                 Submitted by {timesheet.employeeFirstName} {timesheet.employeeLastName}
               </Text>
-            </div>
+            </View>
             {renderStatusBadge(timesheet.status)}
           </View>
 

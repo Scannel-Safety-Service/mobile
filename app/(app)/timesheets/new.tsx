@@ -353,7 +353,7 @@ export default function NewTimesheetScreen() {
         isDraft
           ? 'Your timesheet draft has been saved.'
           : 'Your weekly timesheet has been submitted to your supervisor for review.',
-        [{ text: 'OK', onPress: () => router.replace('/(app)/timesheets' as any) }],
+        [{ text: 'OK', onPress: () => router.replace('/(app)/(tabs)/timesheets' as any) }],
       );
     } catch (err: any) {
       Alert.alert('Submission Error', err.message || 'Failed to submit timesheet.');
@@ -496,14 +496,14 @@ export default function NewTimesheetScreen() {
         {/* ── Section 2: 7-Day Hours & Live Project Selection ── */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.sectionHeaderRow}>
-            <div>
+            <View>
               <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 2 }]}>
                 Total Hours You Worked Each Day
               </Text>
               <Text style={[styles.sectionSub, { color: colors.muted }]}>
                 Enter start/finish times and assign projects per day
               </Text>
-            </div>
+            </View>
             <View style={styles.weekTotalPill}>
               <Text style={styles.weekTotalPillText}>{totalWeekHours.toFixed(1)} hrs total</Text>
             </View>
@@ -557,14 +557,14 @@ export default function NewTimesheetScreen() {
                           {day.dayOfWeek.slice(0, 3)}
                         </Text>
                       </View>
-                      <div>
+                      <View>
                         <Text style={[styles.dayLabel, { color: colors.text }]}>{day.label}</Text>
                         {selectedProj && !day.isExpanded && (
                           <Text style={[styles.dayMiniProject, { color: colors.muted }]} numberOfLines={1}>
                             {selectedProj.name} &bull; {day.startTime}-{day.finishTime}
                           </Text>
                         )}
-                      </div>
+                      </View>
                     </View>
 
                     <View style={styles.dayHeaderRight}>

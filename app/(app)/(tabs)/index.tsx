@@ -253,7 +253,7 @@ export default function HomeScreen() {
           <Pressable
             onPress={() => {
               triggerFeedback();
-              router.push('/(app)/timesheets' as any);
+              router.push('/(app)/(tabs)/timesheets' as any);
             }}
             style={({ pressed }) => [
               styles.timesheetBanner,
