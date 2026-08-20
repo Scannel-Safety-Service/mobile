@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import {
   StyleSheet,
   View,
@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Calendar,
   Briefcase,
-  Layers,
 } from 'lucide-react-native';
 import { Colors, Typography } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -116,94 +115,32 @@ export default function TimesheetsTabScreen() {
     }
   };
 
-  const renderItem = ({ item }: { item: MobileTimesheet }) => {
-    const projectNames = Array.from(
-      new Set(item.entries?.map((e) => e.project?.name).filter(Boolean) as string[]),
-    );
+  const handleCardPress = useCallback(
+    (id: string) => {
+      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+      router.push({
+        pathname: '/(app)/timesheets/[id]',
+        params: { id },
+      });
+    },
+    [router],
+  );
 
-    return (
-      <TouchableOpacity
-        onPress={() => {
-          Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-          router.push({
-            pathname: '/(app)/timesheets/[id]',
-            params: { id: item.id },
-          });
-        }}
-        activeOpacity={0.7}
-        style={[
-          styles.timesheetCard,
-          {
-            backgroundColor: colors.card,
-            borderColor: colors.cardBorder,
-          },
-        ]}
-      >
-        <View style={styles.cardTopRow}>
-          <View style={styles.weekRangeWrap}>
-            <Calendar size={15} color={colors.primary} />
-            <Text style={[styles.weekRangeText, { color: colors.text }]}>
-              {formatDate(item.weekStartDate)} &ndash; {formatDate(item.weekEndDate)}
-            </Text>
-          </View>
-          {renderStatusBadge(item.status)}
-        </View>
+  const renderItem = useCallback(
+    ({ item }: { item: MobileTimesheet }) => (
+      <TimesheetCard
+        item={item}
+        colors={colors}
+        isDark={isDark}
+        onPress={handleCardPress}
+        formatDate={formatDate}
+        renderStatusBadge={renderStatusBadge}
+      />
+    ),
+    [colors, isDark, handleCardPress],
+  );
 
-        <View style={styles.cardMidRow}>
-          <View>
-            <Text style={[styles.hoursValue, { color: colors.text }]}>
-              {item.totalHours.toFixed(1)} <Text style={[styles.hoursUnit, { color: colors.muted }]}>hrs</Text>
-            </Text>
-            <Text style={[styles.hoursLabel, { color: colors.muted }]}>Total Logged</Text>
-          </View>
-
-          {item.productivityScore && (
-            <View style={styles.metaCol}>
-              <Text style={[styles.metaVal, { color: colors.text }]}>
-                {item.productivityScore}/10
-              </Text>
-              <Text style={[styles.metaLab, { color: colors.muted }]}>Productivity</Text>
-            </View>
-          )}
-
-          {item.expenseReimbursement && (
-            <View style={styles.metaCol}>
-              <Text style={[styles.metaVal, { color: '#f59e0b' }]}>Yes</Text>
-              <Text style={[styles.metaLab, { color: colors.muted }]}>Expenses</Text>
-            </View>
-          )}
-        </View>
-
-        {projectNames.length > 0 && (
-          <View style={styles.projectsRow}>
-            <Briefcase size={12} color={colors.muted} />
-            <Text style={[styles.projectNamesText, { color: colors.muted }]} numberOfLines={1}>
-              {projectNames.join(', ')}
-            </Text>
-          </View>
-        )}
-
-        {item.rejectionReason && (
-          <View style={[styles.rejectionNotice, { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' }]}>
-            <AlertTriangle size={13} color="#ef4444" />
-            <Text style={styles.rejectionNoticeText} numberOfLines={2}>
-              "{item.rejectionReason}"
-            </Text>
-          </View>
-        )}
-
-        <View style={[styles.cardFooter, { borderTopColor: isDark ? '#0f2740' : '#f8fafc' }]}>
-          <Text style={[styles.submittedAtText, { color: colors.muted }]}>
-            Submitted {formatDate(item.createdAt)}
-          </Text>
-          <View style={styles.viewDetailsWrap}>
-            <Text style={[styles.viewDetailsText, { color: colors.primary }]}>View Details</Text>
-            <ChevronRight size={14} color={colors.primary} />
-          </View>
-        </View>
-      </TouchableOpacity>
-    );
-  };
+  const keyExtractor = useCallback((item: MobileTimesheet) => item.id, []);
 
   return (
     <View style={[styles.container, { backgroundColor: colors.background }]}>
@@ -293,10 +230,13 @@ export default function TimesheetsTabScreen() {
           <FlatList
             data={timesheets}
             renderItem={renderItem}
-            keyExtractor={(item) => item.id}
+            keyExtractor={keyExtractor}
             contentContainerStyle={styles.listContent}
             refreshControl={<RefreshControl refreshing={isRefreshing} onRefresh={onRefresh} />}
             showsVerticalScrollIndicator={false}
+            removeClippedSubviews
+            maxToRenderPerBatch={8}
+            windowSize={5}
             ListEmptyComponent={
               <View style={styles.emptyContainer}>
                 <Clock size={48} color={colors.muted} style={{ marginBottom: 12 }} />
@@ -321,6 +261,116 @@ export default function TimesheetsTabScreen() {
     </View>
   );
 }
+
+/* ── Memoized Timesheet Card ── */
+const TimesheetCard = React.memo(
+  ({
+    item,
+    colors,
+    isDark,
+    onPress,
+    formatDate,
+    renderStatusBadge,
+  }: {
+    item: MobileTimesheet;
+    colors: typeof Colors.light;
+    isDark: boolean;
+    onPress: (id: string) => void;
+    formatDate: (d: string) => string;
+    renderStatusBadge: (s: TimesheetStatus) => React.ReactNode;
+  }) => {
+    const projectNames = useMemo(
+      () =>
+        Array.from(
+          new Set(item.entries?.map((e) => e.project?.name).filter(Boolean) as string[]),
+        ),
+      [item.entries],
+    );
+
+    return (
+      <TouchableOpacity
+        onPress={() => onPress(item.id)}
+        activeOpacity={0.7}
+        style={[
+          styles.timesheetCard,
+          {
+            backgroundColor: colors.card,
+            borderColor: colors.cardBorder,
+          },
+        ]}
+      >
+        <View style={styles.cardTopRow}>
+          <View style={styles.weekRangeWrap}>
+            <Calendar size={15} color={colors.primary} />
+            <Text style={[styles.weekRangeText, { color: colors.text }]}>
+              {formatDate(item.weekStartDate)} &ndash; {formatDate(item.weekEndDate)}
+            </Text>
+          </View>
+          {renderStatusBadge(item.status)}
+        </View>
+
+        <View style={styles.cardMidRow}>
+          <View>
+            <Text style={[styles.hoursValue, { color: colors.text }]}>
+              {item.totalHours.toFixed(1)}{' '}
+              <Text style={[styles.hoursUnit, { color: colors.muted }]}>hrs</Text>
+            </Text>
+            <Text style={[styles.hoursLabel, { color: colors.muted }]}>Total Logged</Text>
+          </View>
+
+          {item.productivityScore && (
+            <View style={styles.metaCol}>
+              <Text style={[styles.metaVal, { color: colors.text }]}>
+                {item.productivityScore}/10
+              </Text>
+              <Text style={[styles.metaLab, { color: colors.muted }]}>Productivity</Text>
+            </View>
+          )}
+
+          {item.expenseReimbursement && (
+            <View style={styles.metaCol}>
+              <Text style={[styles.metaVal, { color: '#f59e0b' }]}>Yes</Text>
+              <Text style={[styles.metaLab, { color: colors.muted }]}>Expenses</Text>
+            </View>
+          )}
+        </View>
+
+        {projectNames.length > 0 && (
+          <View style={styles.projectsRow}>
+            <Briefcase size={12} color={colors.muted} />
+            <Text style={[styles.projectNamesText, { color: colors.muted }]} numberOfLines={1}>
+              {projectNames.join(', ')}
+            </Text>
+          </View>
+        )}
+
+        {item.rejectionReason && (
+          <View
+            style={[
+              styles.rejectionNotice,
+              { backgroundColor: isDark ? 'rgba(239,68,68,0.1)' : '#fef2f2' },
+            ]}
+          >
+            <AlertTriangle size={13} color="#ef4444" />
+            <Text style={styles.rejectionNoticeText} numberOfLines={2}>
+              "{item.rejectionReason}"
+            </Text>
+          </View>
+        )}
+
+        <View style={[styles.cardFooter, { borderTopColor: isDark ? '#0f2740' : '#f8fafc' }]}>
+          <Text style={[styles.submittedAtText, { color: colors.muted }]}>
+            Submitted {formatDate(item.createdAt)}
+          </Text>
+          <View style={styles.viewDetailsWrap}>
+            <Text style={[styles.viewDetailsText, { color: colors.primary }]}>View Details</Text>
+            <ChevronRight size={14} color={colors.primary} />
+          </View>
+        </View>
+      </TouchableOpacity>
+    );
+  },
+);
 
 const styles = StyleSheet.create({
   container: {
@@ -352,10 +402,11 @@ const styles = StyleSheet.create({
   addBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    gap: 6,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 20,
+    minHeight: 44,
     shadowColor: '#155B9D',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.25,
@@ -364,7 +415,7 @@ const styles = StyleSheet.create({
   },
   addBtnText: {
     color: '#ffffff',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
   filterTabsContainer: {
@@ -377,13 +428,15 @@ const styles = StyleSheet.create({
     paddingVertical: 6,
   },
   filterTabPill: {
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
     borderRadius: 14,
     borderWidth: 1,
+    minHeight: 44,
+    justifyContent: 'center',
   },
   filterTabText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   loadingContainer: {
@@ -543,10 +596,11 @@ const styles = StyleSheet.create({
   emptyCreateBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 20,
-    paddingVertical: 12,
+    gap: 8,
+    paddingHorizontal: 24,
+    paddingVertical: 14,
     borderRadius: 14,
+    minHeight: 48,
     shadowColor: '#155B9D',
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.2,
@@ -555,7 +609,7 @@ const styles = StyleSheet.create({
   },
   emptyCreateBtnText: {
     color: '#ffffff',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
 });

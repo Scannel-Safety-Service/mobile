@@ -29,9 +29,8 @@ import {
   ChevronDown,
   Trash2,
   ChevronLeft,
-  Sparkles,
   FileText,
-  Layers,
+  User,
 } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -154,6 +153,9 @@ export default function NewTimesheetScreen() {
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // Employee info section collapsed by default (pre-filled data)
+  const [isEmployeeInfoExpanded, setIsEmployeeInfoExpanded] = useState(false);
 
   // Load live company projects
   useEffect(() => {
@@ -410,102 +412,132 @@ export default function NewTimesheetScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
-        {/* Title Header Banner */}
+        {/* Brief Header */}
         <View style={styles.headerBanner}>
           <Text style={[styles.mainHeading, { color: colors.text }]}>
-            EMPLOYEE WEEKLY TIME SHEET
+            Log Your Hours
           </Text>
           <Text style={[styles.subHeading, { color: colors.muted }]}>
-            Record daily hours worked, select company projects, and submit for supervisor approval.
+            Enter daily hours, assign projects, and submit for approval.
           </Text>
         </View>
 
-        {/* ── Section 1: Employee Information ── */}
+        {/* ── Section 1: Employee Information (Collapsible) ── */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
-          <Text style={[styles.sectionTitle, { color: colors.text }]}>Employee Information</Text>
-
-          {/* First Name & Last Name */}
-          <View style={styles.rowFields}>
-            <View style={styles.halfField}>
-              <Text style={[styles.label, { color: colors.muted }]}>First Name</Text>
-              <TextInput
-                value={firstName}
-                onChangeText={setFirstName}
-                placeholder="First Name"
-                placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
-                style={[styles.input, { color: colors.text, borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}
-              />
+          <TouchableOpacity
+            onPress={() => {
+              Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+              setIsEmployeeInfoExpanded((prev) => !prev);
+            }}
+            activeOpacity={0.7}
+            style={styles.collapsibleHeader}
+          >
+            <View style={styles.collapsibleHeaderLeft}>
+              <View style={[styles.collapsibleIcon, { backgroundColor: isDark ? 'rgba(86,185,255,0.15)' : 'rgba(21,91,157,0.08)' }]}>
+                <User size={16} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 0 }]}>Employee Info</Text>
+                {!isEmployeeInfoExpanded && (
+                  <Text style={[styles.collapsibleSummary, { color: colors.muted }]} numberOfLines={1}>
+                    {firstName} {lastName} · {email}
+                  </Text>
+                )}
+              </View>
             </View>
-            <View style={styles.halfField}>
-              <Text style={[styles.label, { color: colors.muted }]}>Last Name</Text>
-              <TextInput
-                value={lastName}
-                onChangeText={setLastName}
-                placeholder="Last Name"
-                placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
-                style={[styles.input, { color: colors.text, borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}
-              />
-            </View>
-          </View>
-
-          {/* Employee Email */}
-          <View style={styles.fieldGroup}>
-            <Text style={[styles.label, { color: colors.muted }]}>Employee Email</Text>
-            <TextInput
-              value={email}
-              onChangeText={setEmail}
-              keyboardType="email-address"
-              autoCapitalize="none"
-              placeholder="ex: myname@example.com"
-              placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
-              style={[styles.input, { color: colors.text, borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}
+            <ChevronDown
+              size={18}
+              color={colors.muted}
+              style={{ transform: [{ rotate: isEmployeeInfoExpanded ? '180deg' : '0deg' }] }}
             />
-          </View>
+          </TouchableOpacity>
 
-          {/* Week Start & End Dates */}
-          <View style={styles.rowFields}>
-            <View style={styles.halfField}>
-              <Text style={[styles.label, { color: colors.muted }]}>Start Date of The Week</Text>
-              <View style={[styles.inputWithIcon, { borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}>
-                <Calendar size={16} color={colors.primary} />
+          {isEmployeeInfoExpanded && (
+            <View style={styles.collapsibleBody}>
+              {/* First Name & Last Name */}
+              <View style={styles.rowFields}>
+                <View style={styles.halfField}>
+                  <Text style={[styles.label, { color: colors.muted }]}>First Name</Text>
+                  <TextInput
+                    value={firstName}
+                    onChangeText={setFirstName}
+                    placeholder="First Name"
+                    placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
+                    style={[styles.input, { color: colors.text, borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}
+                  />
+                </View>
+                <View style={styles.halfField}>
+                  <Text style={[styles.label, { color: colors.muted }]}>Last Name</Text>
+                  <TextInput
+                    value={lastName}
+                    onChangeText={setLastName}
+                    placeholder="Last Name"
+                    placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
+                    style={[styles.input, { color: colors.text, borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}
+                  />
+                </View>
+              </View>
+
+              {/* Employee Email */}
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.label, { color: colors.muted }]}>Email</Text>
                 <TextInput
-                  value={startDate}
-                  onChangeText={setStartDate}
-                  placeholder="YYYY-MM-DD"
+                  value={email}
+                  onChangeText={setEmail}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholder="ex: myname@example.com"
                   placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
-                  style={[styles.inputInner, { color: colors.text }]}
+                  style={[styles.input, { color: colors.text, borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}
                 />
               </View>
-            </View>
-            <View style={styles.halfField}>
-              <Text style={[styles.label, { color: colors.muted }]}>End Date of The Week</Text>
-              <View style={[styles.inputWithIcon, { borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}>
-                <Calendar size={16} color={colors.primary} />
-                <TextInput
-                  value={endDate}
-                  onChangeText={setEndDate}
-                  placeholder="YYYY-MM-DD"
-                  placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
-                  style={[styles.inputInner, { color: colors.text }]}
-                />
+
+              {/* Week Start & End Dates */}
+              <View style={styles.rowFields}>
+                <View style={styles.halfField}>
+                  <Text style={[styles.label, { color: colors.muted }]}>Week Start</Text>
+                  <View style={[styles.inputWithIcon, { borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}>
+                    <Calendar size={16} color={colors.primary} />
+                    <TextInput
+                      value={startDate}
+                      onChangeText={setStartDate}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
+                      style={[styles.inputInner, { color: colors.text }]}
+                    />
+                  </View>
+                </View>
+                <View style={styles.halfField}>
+                  <Text style={[styles.label, { color: colors.muted }]}>Week End</Text>
+                  <View style={[styles.inputWithIcon, { borderColor: colors.cardBorder, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}>
+                    <Calendar size={16} color={colors.primary} />
+                    <TextInput
+                      value={endDate}
+                      onChangeText={setEndDate}
+                      placeholder="YYYY-MM-DD"
+                      placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
+                      style={[styles.inputInner, { color: colors.text }]}
+                    />
+                  </View>
+                </View>
               </View>
             </View>
-          </View>
+          )}
         </View>
 
         {/* ── Section 2: 7-Day Hours & Live Project Selection ── */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.sectionHeaderRow}>
-            <View>
+            <View style={{ flex: 1 }}>
               <Text style={[styles.sectionTitle, { color: colors.text, marginBottom: 2 }]}>
-                Total Hours You Worked Each Day
+                Daily Hours
               </Text>
               <Text style={[styles.sectionSub, { color: colors.muted }]}>
-                Enter start/finish times and assign projects per day
+                Set times & projects per day
               </Text>
             </View>
             <View style={styles.weekTotalPill}>
-              <Text style={styles.weekTotalPillText}>{totalWeekHours.toFixed(1)} hrs total</Text>
+              <Text style={styles.weekTotalPillText}>{totalWeekHours.toFixed(1)}h</Text>
             </View>
           </View>
 
@@ -865,10 +897,10 @@ export default function NewTimesheetScreen() {
 
           {/* Upload Drop Zone / Action Buttons */}
           <View style={[styles.uploadBox, { borderColor: colors.primary, backgroundColor: isDark ? '#0c1f35' : '#f8fafc' }]}>
-            <Upload size={32} color={colors.primary} style={{ marginBottom: 8 }} />
-            <Text style={[styles.uploadBoxTitle, { color: colors.text }]}>Upload a File or Receipt</Text>
+            <Upload size={28} color={colors.primary} style={{ marginBottom: 8 }} />
+            <Text style={[styles.uploadBoxTitle, { color: colors.text }]}>Add a File or Photo</Text>
             <Text style={[styles.uploadBoxSub, { color: colors.muted, marginBottom: 14 }]}>
-              Drag and drop files or select an option below
+              Tap an option below to attach receipts or documents
             </Text>
 
             <View style={styles.uploadActionsRow}>
@@ -916,7 +948,7 @@ export default function NewTimesheetScreen() {
                       )}
                     </View>
                   </View>
-                  <TouchableOpacity onPress={() => removeAttachment(i)} style={styles.attRemoveBtn}>
+                  <TouchableOpacity onPress={() => removeAttachment(i)} style={styles.attRemoveBtn} hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}>
                     <Trash2 size={16} color="#ef4444" />
                   </TouchableOpacity>
                 </View>
@@ -1041,9 +1073,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -1077,7 +1109,6 @@ const styles = StyleSheet.create({
     ...Typography.title2,
     fontWeight: '900',
     letterSpacing: -0.5,
-    textTransform: 'uppercase',
     marginBottom: 4,
   },
   subHeading: {
@@ -1095,13 +1126,42 @@ const styles = StyleSheet.create({
     elevation: 2,
   },
   sectionTitle: {
-    ...Typography.title3,
+    ...Typography.headline,
     fontWeight: '800',
     marginBottom: 4,
   },
   sectionSub: {
     ...Typography.footnote,
     marginBottom: 10,
+  },
+  collapsibleHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    minHeight: 48,
+  },
+  collapsibleHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    flex: 1,
+  },
+  collapsibleIcon: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  collapsibleSummary: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  collapsibleBody: {
+    paddingTop: 14,
+    marginTop: 12,
+    borderTopWidth: 1,
+    borderTopColor: 'rgba(0,0,0,0.04)',
   },
   sectionHeaderRow: {
     flexDirection: 'row',
@@ -1244,13 +1304,14 @@ const styles = StyleSheet.create({
   breakPill: {
     flex: 1,
     borderWidth: 1,
-    borderRadius: 8,
-    paddingVertical: 6,
+    borderRadius: 10,
+    paddingVertical: 10,
+    minHeight: 44,
     alignItems: 'center',
     justifyContent: 'center',
   },
   breakPillText: {
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '700',
   },
   projectSelectBtn: {
@@ -1259,8 +1320,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderRadius: 10,
     paddingHorizontal: 12,
-    paddingVertical: 10,
+    paddingVertical: 12,
     gap: 8,
+    minHeight: 48,
   },
   projectSelectText: {
     flex: 1,
@@ -1278,8 +1340,9 @@ const styles = StyleSheet.create({
     gap: 10,
     borderWidth: 1,
     borderRadius: 12,
-    paddingVertical: 12,
+    paddingVertical: 14,
     paddingHorizontal: 14,
+    minHeight: 48,
   },
   radioCircle: {
     width: 20,
@@ -1300,19 +1363,20 @@ const styles = StyleSheet.create({
   },
   productivityRow: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: 4,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-start',
+    gap: 8,
   },
   scoreCircle: {
-    width: 30,
-    height: 30,
-    borderRadius: 15,
-    borderWidth: 1,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
   },
   scoreText: {
-    fontSize: 12,
+    fontSize: 14,
     fontWeight: '800',
   },
   ratingLabelsRow: {
@@ -1356,13 +1420,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 10,
+    minHeight: 44,
   },
   uploadBtnText: {
     color: '#ffffff',
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   uploadBtnOutline: {
@@ -1370,12 +1435,13 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 6,
     borderWidth: 1,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderRadius: 10,
+    minHeight: 44,
   },
   uploadBtnOutlineText: {
-    fontSize: 12,
+    fontSize: 13,
     fontWeight: '700',
   },
   attachmentsList: {
@@ -1417,7 +1483,11 @@ const styles = StyleSheet.create({
     marginTop: 1,
   },
   attRemoveBtn: {
-    padding: 6,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   actionsContainer: {
     gap: 10,
@@ -1428,8 +1498,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderRadius: 16,
+    minHeight: 52,
     shadowColor: '#155B9D',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
@@ -1448,24 +1519,26 @@ const styles = StyleSheet.create({
   draftButton: {
     flex: 1,
     borderWidth: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 48,
   },
   draftButtonText: {
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '700',
   },
   clearButton: {
     flex: 1,
-    paddingVertical: 12,
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
+    minHeight: 48,
   },
   clearButtonText: {
     color: '#94a3b8',
-    fontSize: 14,
+    fontSize: 15,
     fontWeight: '600',
   },
   modalOverlay: {
@@ -1491,7 +1564,11 @@ const styles = StyleSheet.create({
     fontWeight: '800',
   },
   closeBtn: {
-    padding: 4,
+    padding: 10,
+    minWidth: 44,
+    minHeight: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   noProjectsText: {
     textAlign: 'center',
@@ -1502,8 +1579,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 12,
-    paddingVertical: 14,
+    paddingVertical: 16,
     borderBottomWidth: 1,
+    minHeight: 56,
   },
   projectName: {
     fontSize: 15,

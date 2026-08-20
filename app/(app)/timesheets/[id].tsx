@@ -14,18 +14,13 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Haptics from 'expo-haptics';
 import {
   ChevronLeft,
-  Calendar,
   Clock,
   Briefcase,
-  User,
-  Mail,
   CheckCircle2,
   XCircle,
   AlertTriangle,
   FileText,
-  Download,
   RotateCcw,
-  Sparkles,
 } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -136,15 +131,13 @@ export default function TimesheetDetailScreen() {
         {/* Status Card Banner */}
         <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
           <View style={styles.bannerTop}>
-            <View>
-              <Text style={[styles.weekRange, { color: colors.text }]}>
-                {formatDate(timesheet.weekStartDate)} &ndash; {formatDate(timesheet.weekEndDate)}
-              </Text>
-              <Text style={[styles.submittedMeta, { color: colors.muted }]}>
-                Submitted by {timesheet.employeeFirstName} {timesheet.employeeLastName}
-              </Text>
-            </View>
             {renderStatusBadge(timesheet.status)}
+            <Text style={[styles.weekRange, { color: colors.text }]}>
+              {formatDate(timesheet.weekStartDate)} &ndash; {formatDate(timesheet.weekEndDate)}
+            </Text>
+            <Text style={[styles.submittedMeta, { color: colors.muted }]}>
+              Submitted by {timesheet.employeeFirstName} {timesheet.employeeLastName}
+            </Text>
           </View>
 
           {/* Supervisor Feedback Banner if any */}
@@ -307,9 +300,9 @@ const styles = StyleSheet.create({
     borderBottomWidth: 1,
   },
   backBtn: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -328,9 +321,9 @@ const styles = StyleSheet.create({
     padding: 16,
   },
   bannerTop: {
-    flexDirection: 'row',
+    flexDirection: 'column',
     alignItems: 'flex-start',
-    justifyContent: 'space-between',
+    gap: 8,
     marginBottom: 12,
   },
   weekRange: {
@@ -479,8 +472,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: 8,
-    paddingVertical: 15,
+    paddingVertical: 16,
     borderRadius: 16,
+    minHeight: 52,
     shadowColor: '#155B9D',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.25,
