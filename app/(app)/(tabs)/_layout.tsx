@@ -83,6 +83,15 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
+        name="timesheets"
+        options={{
+          title: 'Timesheets',
+          tabBarIcon: ({ color, focused }) => (
+            <TabBarIcon name="clock.fill" color={color} focused={focused} isDark={isDark} />
+          ),
+        }}
+      />
+      <Tabs.Screen
         name="projects"
         options={{
           title: 'Projects',
@@ -115,9 +124,9 @@ export default function TabLayout() {
 
 const styles = StyleSheet.create({
   iconPill: {
-    width: 52,
-    height: 30,
-    borderRadius: 15,
+    width: 44,
+    height: 28,
+    borderRadius: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },

@@ -21,6 +21,7 @@ const MAPPING = {
   'person.fill': 'person',
   'folder.fill': 'folder',
   'briefcase.fill': 'work',
+  'clock.fill': 'schedule',
 } as IconMapping;
 
 /**
