@@ -7,7 +7,6 @@ import {
   ScrollView,
   ActivityIndicator,
   Image,
-  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -46,18 +45,19 @@ export default function TimesheetDetailScreen() {
 
   const [timesheet, setTimesheet] = useState<MobileTimesheet | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (id) {
+      setIsLoading(true);
       fetchTimesheetById(id)
         .then(setTimesheet)
         .catch((err) => {
-          Alert.alert('Error', err.message || 'Could not load timesheet');
-          router.back();
+          setErrorMessage(err.message || 'Could not load timesheet details');
         })
         .finally(() => setIsLoading(false));
     }
-  }, [id, router]);
+  }, [id]);
 
   const formatDate = (dStr?: string | null) => {
     if (!dStr) return 'N/A';
@@ -103,10 +103,32 @@ export default function TimesheetDetailScreen() {
     }
   };
 
-  if (isLoading || !timesheet) {
+  if (isLoading) {
     return (
       <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center' }]}>
         <ActivityIndicator size="large" color={colors.primary} />
+      </SafeAreaView>
+    );
+  }
+
+  if (errorMessage || !timesheet) {
+    return (
+      <SafeAreaView style={[styles.container, { backgroundColor: colors.background, justifyContent: 'center', alignItems: 'center', padding: 24 }]}>
+        <View style={[styles.card, { backgroundColor: colors.card, borderColor: colors.cardBorder, alignItems: 'center', padding: 24, width: '100%', maxWidth: 360 }]}>
+          <XCircle size={40} color="#ef4444" style={{ marginBottom: 12 }} />
+          <Text style={{ fontSize: 18, fontWeight: '800', color: colors.text, marginBottom: 8, textAlign: 'center' }}>
+            Failed to Load
+          </Text>
+          <Text style={{ fontSize: 14, color: colors.muted, textAlign: 'center', marginBottom: 20 }}>
+            {errorMessage || 'Could not find the requested timesheet details.'}
+          </Text>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            style={{ backgroundColor: colors.primary, height: 44, borderRadius: 12, paddingHorizontal: 24, justifyContent: 'center', alignItems: 'center' }}
+          >
+            <Text style={{ color: '#ffffff', fontWeight: '700', fontSize: 14 }}>Go Back</Text>
+          </TouchableOpacity>
+        </View>
       </SafeAreaView>
     );
   }

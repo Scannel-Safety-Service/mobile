@@ -21,13 +21,36 @@ export async function fetchTimesheetById(id: string): Promise<MobileTimesheet> {
 }
 
 export async function fetchLiveProjects(): Promise<MobileProject[]> {
+  try {
+    const assignedRes = await apiRequest('/projects/my-assigned');
+    if (assignedRes.ok) {
+      const assignedJson = await assignedRes.json();
+      const pByYear = assignedJson.data?.projectsByYear;
+      if (pByYear && typeof pByYear === 'object') {
+        const assignedList = Object.values(pByYear).flat() as any[];
+        if (assignedList.length > 0) {
+          return assignedList.map((p: any) => ({
+            id: p.id,
+            name: p.name,
+            year: p.year,
+          }));
+        }
+      }
+    }
+  } catch (err) {
+    console.warn('Could not fetch assigned projects, falling back to company projects:', err);
+  }
+
   const response = await apiRequest('/projects?limit=100');
   if (!response.ok) {
     return [];
   }
   const result = await response.json();
-  const rawList = result.data?.items || result.data || [];
-  return rawList.map((p: any) => ({
+  const rawList = result.data?.projectsByYear
+    ? Object.values(result.data.projectsByYear).flat()
+    : result.data?.items || (Array.isArray(result.data) ? result.data : []);
+
+  return (rawList as any[]).map((p: any) => ({
     id: p.id,
     name: p.name,
     year: p.year,

@@ -25,12 +25,15 @@ import {
   Camera,
   CheckCircle2,
   AlertCircle,
+  AlertTriangle,
   X,
   ChevronDown,
   Trash2,
   ChevronLeft,
   FileText,
   User,
+  MinusCircle,
+  Search,
 } from 'lucide-react-native';
 import { Colors, Typography, Spacing, Radii } from '@/constants/theme';
 import { useColorScheme } from '@/hooks/use-color-scheme';
@@ -150,6 +153,50 @@ export default function NewTimesheetScreen() {
 
   // Project Picker Modal State
   const [activeDayIndexForProject, setActiveDayIndexForProject] = useState<number | null>(null);
+  const [projectSearchQuery, setProjectSearchQuery] = useState('');
+
+  // Custom Modals & Action Sheet State
+  const [isAttachmentSheetVisible, setIsAttachmentSheetVisible] = useState(false);
+  const [customAlert, setCustomAlert] = useState<{
+    visible: boolean;
+    title: string;
+    message: string;
+    type?: 'info' | 'success' | 'error' | 'warning' | 'confirm';
+    confirmText?: string;
+    cancelText?: string;
+    onConfirm?: () => void;
+  }>({
+    visible: false,
+    title: '',
+    message: '',
+  });
+
+  const showAlert = (
+    title: string,
+    message: string,
+    type: 'info' | 'success' | 'error' | 'warning' | 'confirm' = 'info',
+    onConfirm?: () => void,
+    confirmText: string = 'OK',
+    cancelText?: string,
+  ) => {
+    setCustomAlert({
+      visible: true,
+      title,
+      message,
+      type,
+      confirmText,
+      cancelText,
+      onConfirm,
+    });
+  };
+
+  const filteredProjects = useMemo(() => {
+    if (!projectSearchQuery.trim()) return projects;
+    const q = projectSearchQuery.toLowerCase();
+    return projects.filter(
+      (p) => p.name.toLowerCase().includes(q) || (p.year && p.year.toString().includes(q)),
+    );
+  }, [projects, projectSearchQuery]);
 
   // Submission State
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -162,12 +209,6 @@ export default function NewTimesheetScreen() {
     fetchLiveProjects()
       .then((p) => {
         setProjects(p);
-        if (p.length > 0) {
-          // Pre-select first project for Mon-Fri
-          setDays((prev) =>
-            prev.map((d) => (d.startTime ? { ...d, projectId: p[0].id } : d)),
-          );
-        }
       })
       .catch((err) => console.warn('Error loading projects:', err))
       .finally(() => setIsProjectsLoading(false));
@@ -220,7 +261,7 @@ export default function NewTimesheetScreen() {
     try {
       const permission = await ImagePicker.requestCameraPermissionsAsync();
       if (!permission.granted) {
-        Alert.alert('Permission Required', 'Camera permission is needed to take a photo.');
+        showAlert('Permission Required', 'Camera permission is needed to take a photo.', 'warning');
         return;
       }
 
@@ -244,62 +285,63 @@ export default function NewTimesheetScreen() {
         Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
       }
     } catch (e: any) {
-      Alert.alert('Camera Error', e.message || 'Could not launch camera');
+      showAlert('Camera Error', e.message || 'Could not launch camera', 'error');
     }
   };
 
-  // Upload file / photo from library or documents
-  const handleUploadFile = async () => {
+  const handlePickImageFromLibrary = async () => {
     try {
-      Alert.alert('Add Attachment', 'Choose the source for your attachment:', [
-        {
-          text: 'Photo Library',
-          onPress: async () => {
-            const result = await ImagePicker.launchImageLibraryAsync({
-              mediaTypes: ImagePicker.MediaTypeOptions.Images,
-              quality: 0.8,
-            });
-            if (!result.canceled && result.assets.length > 0) {
-              const asset = result.assets[0];
-              const filename = asset.fileName || `image_${Date.now()}.jpg`;
-              setAttachments((prev) => [
-                ...prev,
-                {
-                  uri: asset.uri,
-                  name: filename,
-                  type: asset.mimeType || 'image/jpeg',
-                  size: asset.fileSize,
-                },
-              ]);
-            }
+      const result = await ImagePicker.launchImageLibraryAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+        quality: 0.8,
+      });
+      if (!result.canceled && result.assets.length > 0) {
+        const asset = result.assets[0];
+        const filename = asset.fileName || `image_${Date.now()}.jpg`;
+        setAttachments((prev) => [
+          ...prev,
+          {
+            uri: asset.uri,
+            name: filename,
+            type: asset.mimeType || 'image/jpeg',
+            size: asset.fileSize,
           },
-        },
-        {
-          text: 'Document / File',
-          onPress: async () => {
-            const result = await DocumentPicker.getDocumentAsync({
-              type: ['application/pdf', 'image/*'],
-              copyToCacheDirectory: true,
-            });
-            if (!result.canceled && result.assets.length > 0) {
-              const file = result.assets[0];
-              setAttachments((prev) => [
-                ...prev,
-                {
-                  uri: file.uri,
-                  name: file.name,
-                  type: file.mimeType || 'application/pdf',
-                  size: file.size,
-                },
-              ]);
-            }
-          },
-        },
-        { text: 'Cancel', style: 'cancel' },
-      ]);
+        ]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
     } catch (e: any) {
-      Alert.alert('Upload Error', e.message || 'Could not pick file');
+      showAlert('Upload Error', e.message || 'Could not pick image', 'error');
     }
+  };
+
+  const handlePickDocument = async () => {
+    try {
+      const result = await DocumentPicker.getDocumentAsync({
+        type: ['application/pdf', 'image/*'],
+        copyToCacheDirectory: true,
+      });
+      if (!result.canceled && result.assets.length > 0) {
+        const file = result.assets[0];
+        setAttachments((prev) => [
+          ...prev,
+          {
+            uri: file.uri,
+            name: file.name,
+            type: file.mimeType || 'application/pdf',
+            size: file.size,
+          },
+        ]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
+      }
+    } catch (e: any) {
+      showAlert('Upload Error', e.message || 'Could not pick file', 'error');
+    }
+  };
+
+  // Trigger attachment source sheet
+  const handleUploadFile = () => {
+    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+    setIsAttachmentSheetVisible(true);
   };
 
   const removeAttachment = (index: number) => {
@@ -310,12 +352,12 @@ export default function NewTimesheetScreen() {
   // Submit Handler
   const handleSubmit = async (isDraft: boolean = false) => {
     if (!firstName.trim() || !lastName.trim() || !email.trim()) {
-      Alert.alert('Missing Info', 'Please enter employee first name, last name, and email.');
+      showAlert('Missing Info', 'Please enter employee first name, last name, and email.', 'warning');
       return;
     }
 
     if (!startDate || !endDate) {
-      Alert.alert('Missing Dates', 'Please specify the week start and end dates.');
+      showAlert('Missing Dates', 'Please specify the week start and end dates.', 'warning');
       return;
     }
 
@@ -350,15 +392,17 @@ export default function NewTimesheetScreen() {
       );
 
       Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success);
-      Alert.alert(
+      showAlert(
         isDraft ? 'Draft Saved' : 'Timesheet Submitted',
         isDraft
           ? 'Your timesheet draft has been saved.'
           : 'Your weekly timesheet has been submitted to your supervisor for review.',
-        [{ text: 'OK', onPress: () => router.replace('/(app)/(tabs)/timesheets' as any) }],
+        'success',
+        () => router.replace('/(app)/(tabs)/timesheets' as any),
+        'View Timesheets',
       );
     } catch (err: any) {
-      Alert.alert('Submission Error', err.message || 'Failed to submit timesheet.');
+      showAlert('Submission Error', err.message || 'Failed to submit timesheet.', 'error');
     } finally {
       setIsSubmitting(false);
     }
@@ -366,32 +410,32 @@ export default function NewTimesheetScreen() {
 
   // Clear Form
   const handleClearForm = () => {
-    Alert.alert('Clear Form', 'Are you sure you want to reset all entered timesheet values?', [
-      { text: 'Cancel', style: 'cancel' },
-      {
-        text: 'Clear All',
-        style: 'destructive',
-        onPress: () => {
-          setDays(
-            INITIAL_DAYS.map((d) => ({
-              dayOfWeek: d.dayOfWeek,
-              label: d.label,
-              isExpanded: false,
-              startTime: '',
-              finishTime: '',
-              breakMinutes: 0,
-              projectId: '',
-              notes: '',
-            })),
-          );
-          setExpenseReimbursement(false);
-          setProductivityScore(null);
-          setComments('');
-          setAttachments([]);
-          Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
-        },
+    showAlert(
+      'Clear Form',
+      'Are you sure you want to reset all entered timesheet values?',
+      'confirm',
+      () => {
+        setDays(
+          INITIAL_DAYS.map((d) => ({
+            dayOfWeek: d.dayOfWeek,
+            label: d.label,
+            isExpanded: false,
+            startTime: '',
+            finishTime: '',
+            breakMinutes: 0,
+            projectId: '',
+            notes: '',
+          })),
+        );
+        setExpenseReimbursement(false);
+        setProductivityScore(null);
+        setComments('');
+        setAttachments([]);
+        Haptics.notificationAsync(Haptics.NotificationFeedbackType.Warning);
       },
-    ]);
+      'Clear All',
+      'Cancel',
+    );
   };
 
   return (
@@ -732,7 +776,7 @@ export default function NewTimesheetScreen() {
                             ]}
                             numberOfLines={1}
                           >
-                            {selectedProj ? selectedProj.name : 'Select active company project...'}
+                            {selectedProj ? selectedProj.name : 'None Project'}
                           </Text>
                           <ChevronDown size={16} color={colors.muted} />
                         </TouchableOpacity>
@@ -994,65 +1038,321 @@ export default function NewTimesheetScreen() {
         </View>
       </ScrollView>
 
-      {/* Project Selector Modal */}
+      {/* ── Custom Project Selector Bottom Sheet ── */}
       <Modal
         visible={activeDayIndexForProject !== null}
         transparent
         animationType="slide"
-        onRequestClose={() => setActiveDayIndexForProject(null)}
+        onRequestClose={() => {
+          setProjectSearchQuery('');
+          setActiveDayIndexForProject(null);
+        }}
       >
-        <View style={styles.modalOverlay}>
-          <View
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => {
+            setProjectSearchQuery('');
+            setActiveDayIndexForProject(null);
+          }}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
             style={[
               styles.projectModalCard,
               { backgroundColor: colors.card, borderColor: colors.cardBorder },
             ]}
           >
+            {/* Grab Handle */}
+            <View style={styles.grabHandleWrap}>
+              <View style={[styles.grabHandle, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
+            </View>
+
             <View style={styles.projectModalHeader}>
-              <Text style={[styles.projectModalTitle, { color: colors.text }]}>
-                Select Live Project
-              </Text>
-              <TouchableOpacity onPress={() => setActiveDayIndexForProject(null)} style={styles.closeBtn}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                <Briefcase size={20} color={colors.primary} />
+                <Text style={[styles.projectModalTitle, { color: colors.text }]}>
+                  Select Allocated Project
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={() => {
+                  setProjectSearchQuery('');
+                  setActiveDayIndexForProject(null);
+                }}
+                style={styles.closeBtn}
+              >
                 <X size={20} color={colors.muted} />
               </TouchableOpacity>
             </View>
 
-            <ScrollView style={{ maxHeight: 350 }}>
-              {projects.length === 0 ? (
-                <Text style={[styles.noProjectsText, { color: colors.muted }]}>
-                  No active company projects found.
-                </Text>
-              ) : (
-                projects.map((proj) => (
-                  <TouchableOpacity
-                    key={proj.id}
-                    onPress={() => {
-                      Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                      if (activeDayIndexForProject !== null) {
-                        updateDay(activeDayIndexForProject, { projectId: proj.id });
-                      }
-                      setActiveDayIndexForProject(null);
-                    }}
+            {/* Project Search Box */}
+            <View
+              style={[
+                styles.modalSearchBox,
+                { backgroundColor: isDark ? '#0c1f35' : '#f1f5f9', borderColor: colors.cardBorder },
+              ]}
+            >
+              <Search size={16} color={colors.muted} />
+              <TextInput
+                value={projectSearchQuery}
+                onChangeText={setProjectSearchQuery}
+                placeholder="Search allocated projects..."
+                placeholderTextColor={isDark ? '#537599' : '#94a3b8'}
+                style={[styles.modalSearchInput, { color: colors.text }]}
+              />
+              {projectSearchQuery.length > 0 && (
+                <TouchableOpacity onPress={() => setProjectSearchQuery('')}>
+                  <X size={14} color={colors.muted} />
+                </TouchableOpacity>
+              )}
+            </View>
+
+            <ScrollView style={{ maxHeight: 340 }} keyboardShouldPersistTaps="handled">
+              {/* None Project Option */}
+              <TouchableOpacity
+                key="none-project"
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                  if (activeDayIndexForProject !== null) {
+                    updateDay(activeDayIndexForProject, { projectId: '' });
+                  }
+                  setProjectSearchQuery('');
+                  setActiveDayIndexForProject(null);
+                }}
+                style={[
+                  styles.projectOptionItem,
+                  {
+                    borderBottomColor: isDark ? '#0f2740' : '#f1f5f9',
+                  },
+                ]}
+              >
+                <MinusCircle size={18} color={colors.muted} />
+                <View style={{ flex: 1 }}>
+                  <Text
                     style={[
-                      styles.projectOptionItem,
+                      styles.projectName,
                       {
-                        borderBottomColor: isDark ? '#0f2740' : '#f1f5f9',
+                        color: colors.text,
+                        fontWeight:
+                          activeDayIndexForProject !== null &&
+                          !days[activeDayIndexForProject]?.projectId
+                            ? '700'
+                            : '400',
                       },
                     ]}
                   >
-                    <Briefcase size={18} color={colors.primary} />
-                    <View style={{ flex: 1 }}>
-                      <Text style={[styles.projectName, { color: colors.text }]}>{proj.name}</Text>
-                      {proj.year && (
-                        <Text style={[styles.projectYear, { color: colors.muted }]}>
-                          Year: {proj.year}
+                    None Project
+                  </Text>
+                  <Text style={[styles.projectYear, { color: colors.muted }]}>
+                    No specific project allocated
+                  </Text>
+                </View>
+                {activeDayIndexForProject !== null &&
+                  !days[activeDayIndexForProject]?.projectId && (
+                    <CheckCircle2 size={16} color={colors.primary} />
+                  )}
+              </TouchableOpacity>
+
+              {filteredProjects.length === 0 && projectSearchQuery.trim().length > 0 ? (
+                <Text style={[styles.noProjectsText, { color: colors.muted }]}>
+                  No projects matching "{projectSearchQuery}"
+                </Text>
+              ) : (
+                filteredProjects.map((proj) => {
+                  const isSelected =
+                    activeDayIndexForProject !== null &&
+                    days[activeDayIndexForProject]?.projectId === proj.id;
+                  return (
+                    <TouchableOpacity
+                      key={proj.id}
+                      onPress={() => {
+                        Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                        if (activeDayIndexForProject !== null) {
+                          updateDay(activeDayIndexForProject, { projectId: proj.id });
+                        }
+                        setProjectSearchQuery('');
+                        setActiveDayIndexForProject(null);
+                      }}
+                      style={[
+                        styles.projectOptionItem,
+                        {
+                          borderBottomColor: isDark ? '#0f2740' : '#f1f5f9',
+                        },
+                      ]}
+                    >
+                      <Briefcase size={18} color={colors.primary} />
+                      <View style={{ flex: 1 }}>
+                        <Text
+                          style={[
+                            styles.projectName,
+                            { color: colors.text, fontWeight: isSelected ? '700' : '400' },
+                          ]}
+                        >
+                          {proj.name}
                         </Text>
-                      )}
-                    </View>
-                  </TouchableOpacity>
-                ))
+                        {proj.year && (
+                          <Text style={[styles.projectYear, { color: colors.muted }]}>
+                            Year: {proj.year}
+                          </Text>
+                        )}
+                      </View>
+                      {isSelected && <CheckCircle2 size={16} color={colors.primary} />}
+                    </TouchableOpacity>
+                  );
+                })
               )}
             </ScrollView>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Custom Attachment Source Action Sheet ── */}
+      <Modal
+        visible={isAttachmentSheetVisible}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setIsAttachmentSheetVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setIsAttachmentSheetVisible(false)}
+        >
+          <TouchableOpacity
+            activeOpacity={1}
+            style={[
+              styles.projectModalCard,
+              { backgroundColor: colors.card, borderColor: colors.cardBorder },
+            ]}
+          >
+            <View style={styles.grabHandleWrap}>
+              <View style={[styles.grabHandle, { backgroundColor: isDark ? '#334155' : '#cbd5e1' }]} />
+            </View>
+
+            <View style={styles.projectModalHeader}>
+              <Text style={[styles.projectModalTitle, { color: colors.text }]}>
+                Add Attachment
+              </Text>
+              <TouchableOpacity onPress={() => setIsAttachmentSheetVisible(false)} style={styles.closeBtn}>
+                <X size={20} color={colors.muted} />
+              </TouchableOpacity>
+            </View>
+
+            <TouchableOpacity
+              style={[styles.actionOptionItem, { borderBottomColor: isDark ? '#0f2740' : '#f1f5f9' }]}
+              onPress={() => {
+                setIsAttachmentSheetVisible(false);
+                handleTakePhoto();
+              }}
+            >
+              <View style={[styles.actionOptionIcon, { backgroundColor: isDark ? 'rgba(86,185,255,0.15)' : '#e0f2fe' }]}>
+                <Camera size={20} color={colors.primary} />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.actionOptionTitle, { color: colors.text }]}>Take Photo</Text>
+                <Text style={[styles.actionOptionSub, { color: colors.muted }]}>Capture invoice or site photo using camera</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionOptionItem, { borderBottomColor: isDark ? '#0f2740' : '#f1f5f9' }]}
+              onPress={() => {
+                setIsAttachmentSheetVisible(false);
+                handlePickImageFromLibrary();
+              }}
+            >
+              <View style={[styles.actionOptionIcon, { backgroundColor: isDark ? 'rgba(16,185,129,0.15)' : '#dcfce7' }]}>
+                <Upload size={20} color="#10b981" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.actionOptionTitle, { color: colors.text }]}>Photo Library</Text>
+                <Text style={[styles.actionOptionSub, { color: colors.muted }]}>Choose image from photo gallery</Text>
+              </View>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={[styles.actionOptionItem, { borderBottomColor: 'transparent' }]}
+              onPress={() => {
+                setIsAttachmentSheetVisible(false);
+                handlePickDocument();
+              }}
+            >
+              <View style={[styles.actionOptionIcon, { backgroundColor: isDark ? 'rgba(168,85,247,0.15)' : '#f3e8ff' }]}>
+                <FileText size={20} color="#a855f7" />
+              </View>
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.actionOptionTitle, { color: colors.text }]}>Document File</Text>
+                <Text style={[styles.actionOptionSub, { color: colors.muted }]}>Select PDF or document file</Text>
+              </View>
+            </TouchableOpacity>
+          </TouchableOpacity>
+        </TouchableOpacity>
+      </Modal>
+
+      {/* ── Custom Styled Dialog Alert Modal ── */}
+      <Modal
+        visible={customAlert.visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setCustomAlert((prev) => ({ ...prev, visible: false }))}
+      >
+        <View style={styles.dialogOverlay}>
+          <View style={[styles.dialogCard, { backgroundColor: colors.card, borderColor: colors.cardBorder }]}>
+            <View style={{ alignItems: 'center', marginBottom: 14 }}>
+              {customAlert.type === 'success' && (
+                <View style={[styles.dialogIconBadge, { backgroundColor: isDark ? 'rgba(16,185,129,0.2)' : '#ecfdf5', borderColor: '#10b981' }]}>
+                  <CheckCircle2 size={28} color="#10b981" />
+                </View>
+              )}
+              {customAlert.type === 'error' && (
+                <View style={[styles.dialogIconBadge, { backgroundColor: isDark ? 'rgba(239,68,68,0.2)' : '#fef2f2', borderColor: '#ef4444' }]}>
+                  <AlertCircle size={28} color="#ef4444" />
+                </View>
+              )}
+              {(customAlert.type === 'warning' || customAlert.type === 'confirm') && (
+                <View style={[styles.dialogIconBadge, { backgroundColor: isDark ? 'rgba(245,158,11,0.2)' : '#fffbeb', borderColor: '#f59e0b' }]}>
+                  <AlertTriangle size={28} color="#f59e0b" />
+                </View>
+              )}
+              {customAlert.type === 'info' && (
+                <View style={[styles.dialogIconBadge, { backgroundColor: isDark ? 'rgba(86,185,255,0.2)' : '#e0f2fe', borderColor: colors.primary }]}>
+                  <AlertCircle size={28} color={colors.primary} />
+                </View>
+              )}
+            </View>
+
+            <Text style={[styles.dialogTitle, { color: colors.text }]}>{customAlert.title}</Text>
+            <Text style={[styles.dialogMessage, { color: colors.muted }]}>{customAlert.message}</Text>
+
+            <View style={styles.dialogActionsRow}>
+              {customAlert.cancelText && (
+                <TouchableOpacity
+                  style={[styles.dialogBtn, styles.dialogCancelBtn, { borderColor: colors.cardBorder }]}
+                  onPress={() => {
+                    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
+                    setCustomAlert((prev) => ({ ...prev, visible: false }));
+                  }}
+                >
+                  <Text style={[styles.dialogCancelText, { color: colors.text }]}>{customAlert.cancelText}</Text>
+                </TouchableOpacity>
+              )}
+
+              <TouchableOpacity
+                style={[
+                  styles.dialogBtn,
+                  { backgroundColor: customAlert.type === 'confirm' ? '#ef4444' : colors.primary },
+                ]}
+                onPress={() => {
+                  Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+                  const callback = customAlert.onConfirm;
+                  setCustomAlert((prev) => ({ ...prev, visible: false }));
+                  if (callback) callback();
+                }}
+              >
+                <Text style={styles.dialogConfirmText}>{customAlert.confirmText || 'OK'}</Text>
+              </TouchableOpacity>
+            </View>
           </View>
         </View>
       </Modal>
@@ -1574,6 +1874,115 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingVertical: 20,
     fontSize: 14,
+  },
+  grabHandleWrap: {
+    alignItems: 'center',
+    paddingVertical: 6,
+    marginBottom: 8,
+  },
+  grabHandle: {
+    width: 36,
+    height: 4,
+    borderRadius: 2,
+  },
+  modalSearchBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    height: 44,
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    borderWidth: 1,
+    marginBottom: 14,
+  },
+  modalSearchInput: {
+    flex: 1,
+    height: '100%',
+    fontSize: 14,
+  },
+  actionOptionItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 14,
+    paddingVertical: 14,
+    borderBottomWidth: 1,
+  },
+  actionOptionIcon: {
+    width: 44,
+    height: 44,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  actionOptionTitle: {
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  actionOptionSub: {
+    fontSize: 12,
+    marginTop: 2,
+  },
+  dialogOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 24,
+  },
+  dialogCard: {
+    width: '100%',
+    maxWidth: 360,
+    borderRadius: 24,
+    padding: 24,
+    borderWidth: 1,
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 8 },
+    shadowOpacity: 0.25,
+    shadowRadius: 16,
+  },
+  dialogIconBadge: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    borderWidth: 1.5,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dialogTitle: {
+    fontSize: 19,
+    fontWeight: '800',
+    textAlign: 'center',
+    marginBottom: 8,
+  },
+  dialogMessage: {
+    fontSize: 14,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: 24,
+  },
+  dialogActionsRow: {
+    flexDirection: 'row',
+    gap: 10,
+  },
+  dialogBtn: {
+    flex: 1,
+    height: 46,
+    borderRadius: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  dialogCancelBtn: {
+    borderWidth: 1,
+  },
+  dialogConfirmText: {
+    color: '#ffffff',
+    fontWeight: '700',
+    fontSize: 15,
+  },
+  dialogCancelText: {
+    fontWeight: '600',
+    fontSize: 15,
   },
   projectOptionItem: {
     flexDirection: 'row',

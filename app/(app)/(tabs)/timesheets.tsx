@@ -180,7 +180,6 @@ export default function TimesheetsTabScreen() {
                 { label: 'All', value: 'ALL' },
                 { label: 'Pending', value: 'PENDING' },
                 { label: 'Approved', value: 'APPROVED' },
-                { label: 'Revision Needed', value: 'REVISION_REQUESTED' },
                 { label: 'Rejected', value: 'REJECTED' },
               ] as const
             ).map((tab) => (
